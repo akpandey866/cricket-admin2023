@@ -1,0 +1,12 @@
+<?php
+namespace App\Model; 
+
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
+use Eloquent,DB,App;
+
+class FeedbackPay extends Eloquent 
+{
+
+	protected $table = 'feedback_pay';
+}
