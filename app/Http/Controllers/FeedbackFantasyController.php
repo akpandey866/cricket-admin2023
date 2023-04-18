@@ -44,7 +44,7 @@ class FeedbackFantasyController extends Controller
     public function saveCategory(Request $request)
     {
         $obj =  new FeedbackCategory;
-        $obj->title     =  $request->title;
+        $obj->name     =  $request->title;
         $obj->description = $request->message;
         $obj->club_id =  $this->userDetail->id;
         $obj->save();
@@ -83,7 +83,7 @@ class FeedbackFantasyController extends Controller
     public function editCategory(Request $request)
     {
         $obj =  FeedbackCategory::findOrFail($request->categoryId);
-        $obj->title     =  $request->title;
+        $obj->name     =  $request->title;
         $obj->description = $request->message;
         $obj->save();
 

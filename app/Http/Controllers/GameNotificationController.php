@@ -16,6 +16,7 @@ class GameNotificationController extends Controller
     }
     public function index(Request $request)
     {
+
         $DB = GameNotification::query();
 
         if (!empty($request->title)) {
