@@ -188,8 +188,10 @@ $router->group(
         $router->get('/feedback-fantasy/category-listing', 'FeedbackFantasyController@cateogryIndex');
         $router->post('/feedback-fantasy/save-category', 'FeedbackFantasyController@saveCategory');
         $router->post('/feedback-fantasy/delete-category', 'FeedbackFantasyController@deleteCategory');
-        $router->post('/feedback-fantasy/edit-category', 'FeedbackFantasyController@editCategory');
         $router->get('/feedback-fantasy/category-details/{id}', 'FeedbackFantasyController@categoryDetail');
+        $router->get('/feedback-fantasy/managers-listing', 'FeedbackFantasyController@coachListing');
+        $router->post('/feedback-fantasy/save-manager', 'FeedbackFantasyController@saveFeeddbackManager');
+        $router->post('/feedback-fantasy/delete-manager', 'FeedbackFantasyController@deleteFeedbackManager');
     }
 );
 

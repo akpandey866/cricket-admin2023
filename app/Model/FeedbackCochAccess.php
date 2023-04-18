@@ -1,12 +1,11 @@
 <?php
-namespace App\Model; 
 
-use Illuminate\Auth\Authenticatable;
+namespace App\Model;
+
 use Illuminate\Database\Eloquent\Model;
-use Eloquent,DB,App;
 
-class FeedbackCochAccess extends Eloquent 
+class FeedbackCochAccess extends Model
 {
 
-	protected $table = 'feedback_coch_access';
+    protected $table = 'feedback_coch_access';
 }
