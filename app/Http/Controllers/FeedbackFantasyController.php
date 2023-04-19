@@ -5,6 +5,12 @@ namespace App\Http\Controllers;
 use App\Model\FeedbackCategory;
 use App\Model\FeedbackCochAccess;
 use App\Model\UserTeams;
+use App\Model\FeedbackFixtureCoch;
+use App\Model\FeedbackManagerAccess;
+use App\Model\FeedbackCoachAccessTeam;
+use App\Model\FeedbackCoachAccessFixture;
+use App\Model\FeedbackManagerAccessTeam;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -159,6 +165,61 @@ class FeedbackFantasyController extends Controller
         $data['status'] = 200;
         $data['data'] = $result;
         $data['message'] = "Feedback Manager has been deleted successfully.";
+        return response()->json($data);
+    }
+    public function manageAccessByTeam(Request $request)
+    {
+        $teamManager = FeedbackManagerAccess::leftJoin('users', 'users.id', 'feedback_manager_access.user_id')
+            ->where(['club_id' => $this->userDetail->id])
+            ->select('feedback_manager_access.*', 'users.full_name as username')
+            ->get();
+
+        $teamLists = \App\Model\Team::where('club', $this->userDetail->id)->select('name', 'id')->get();
+        $selectedIds = FeedbackManagerAccess::where('club_id', $this->userDetail->id)->pluck('user_id', 'user_id')->all();
+        $userList = FeedbackCochAccess::leftJoin('users', 'users.id', 'feedback_coch_access.user_id')
+            ->where('feedback_coch_access.club_id', $this->userDetail->id)
+            ->whereNotIn('feedback_coch_access.user_id', $selectedIds)
+            ->select('users.full_name', 'feedback_coch_access.user_id')->get();
+        $data = [];
+        $map = $teamLists->map(function ($item) {
+
+            $data['value'] = $item->id;
+            $data['text'] = $item->name;
+            return $data;
+        });
+        $data['status'] = 200;
+        $data['data'] = $teamManager;
+        $data['team_list'] = $map;
+        $data['user_list'] = $userList;
+        return response()->json($data);
+    }
+    public function saveManageAcessByTeam(Request $request)
+    {
+        $obj = new FeedbackManagerAccess;
+        $obj->club_id = $this->userDetail->id;
+        $obj->user_id = $request->user;
+        if ($obj->save()) {
+            foreach ($request->team as $key => $value) {
+                $objTeam = new FeedbackManagerAccessTeam;
+                $objTeam->feedback_manager_access_id  = $obj->id;
+                $objTeam->team_id  = $value;
+                $objTeam->save();
+            }
+        }
+
+        $selectedIds = FeedbackManagerAccess::where('club_id', $this->userDetail->id)->pluck('user_id', 'user_id')->all();
+        $userList = FeedbackCochAccess::leftJoin('users', 'users.id', 'feedback_coch_access.user_id')
+            ->where('feedback_coch_access.club_id', $this->userDetail->id)
+            ->whereNotIn('feedback_coch_access.user_id', $selectedIds)
+            ->select('users.full_name', 'feedback_coch_access.user_id')->get();
+        $teamManager = FeedbackManagerAccess::leftJoin('users', 'users.id', 'feedback_manager_access.user_id')
+            ->where(['club_id' => $this->userDetail->id])
+            ->select('feedback_manager_access.*', 'users.full_name as username')
+            ->get();
+        $data['status'] = 200;
+        $data['data'] = $teamManager;
+        $data['user_list'] = $userList;
+        $data['message'] = "Manage Access by Team has been added successfully.";
         return response()->json($data);
     }
 }

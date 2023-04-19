@@ -192,6 +192,8 @@ $router->group(
         $router->get('/feedback-fantasy/managers-listing', 'FeedbackFantasyController@coachListing');
         $router->post('/feedback-fantasy/save-manager', 'FeedbackFantasyController@saveFeeddbackManager');
         $router->post('/feedback-fantasy/delete-manager', 'FeedbackFantasyController@deleteFeedbackManager');
+        $router->get('/feedback-fantasy/manage-access-by-team', 'FeedbackFantasyController@manageAccessByTeam');
+        $router->post('/feedback-fantasy/save-manage-access-by-team', 'FeedbackFantasyController@saveManageAcessByTeam');
     }
 );
 
