@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Model\FeedbackCategory;
 use App\Model\FeedbackCochAccess;
 use App\Model\UserTeams;
-use App\Model\FeedbackFixtureCoch;
 use App\Model\FeedbackManagerAccess;
-use App\Model\FeedbackCoachAccessTeam;
-use App\Model\FeedbackCoachAccessFixture;
 use App\Model\FeedbackManagerAccessTeam;
+use App\Model\FeedbackManagerAccessFixture;
+use App\Model\Fixture;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -171,6 +170,7 @@ class FeedbackFantasyController extends Controller
     {
         $teamManager = FeedbackManagerAccess::leftJoin('users', 'users.id', 'feedback_manager_access.user_id')
             ->where(['club_id' => $this->userDetail->id])
+            ->where('type', 1)
             ->select('feedback_manager_access.*', 'users.full_name as username')
             ->get();
 
@@ -198,6 +198,7 @@ class FeedbackFantasyController extends Controller
         $obj = new FeedbackManagerAccess;
         $obj->club_id = $this->userDetail->id;
         $obj->user_id = $request->user;
+        $obj->type = 1;
         if ($obj->save()) {
             foreach ($request->team as $key => $value) {
                 $objTeam = new FeedbackManagerAccessTeam;
@@ -220,6 +221,119 @@ class FeedbackFantasyController extends Controller
         $data['data'] = $teamManager;
         $data['user_list'] = $userList;
         $data['message'] = "Manage Access by Team has been added successfully.";
+        return response()->json($data);
+    }
+    public function manageAccessByFixture(Request $request)
+    {
+        $teamManager = FeedbackManagerAccess::leftJoin('users', 'users.id', 'feedback_manager_access.user_id')
+            ->where(['club_id' => $this->userDetail->id])
+            ->where('type', 2)
+            ->select('feedback_manager_access.*', 'users.full_name as username')
+            ->get();
+
+        $selectedFixtureId = FeedbackManagerAccessFixture::leftJoin('feedback_manager_access', 'feedback_manager_access.id', '=', 'feedback_manager_access_fixtures.feedback_manager_access_id')
+            ->where('feedback_manager_access.club_id', $this->userDetail->id)
+            ->pluck('feedback_manager_access_fixtures.fixture_id', 'feedback_manager_access_fixtures.id')->all();
+
+        $fixturData = Fixture::leftJoin('teams', 'teams.id', '=', 'fixtures.team')
+            ->where('fixtures.status', '!=', 3)
+            ->where('fixtures.start_date', '>', "2022-10-19")
+            ->where('fixtures.club', $this->userDetail->id)
+            ->whereNotIn('fixtures.id', $selectedFixtureId)
+            ->select('fixtures.*', 'teams.name as team_name')
+            ->get();
+
+        $selectedIds = FeedbackManagerAccess::where('club_id', $this->userDetail->id)->pluck('user_id', 'user_id')->all();
+        $userList = FeedbackCochAccess::leftJoin('users', 'users.id', 'feedback_coch_access.user_id')
+            ->where('feedback_coch_access.club_id', $this->userDetail->id)
+            ->whereNotIn('feedback_coch_access.user_id', $selectedIds)
+            ->select('users.full_name', 'feedback_coch_access.user_id')->get();
+
+        $data['status'] = 200;
+        $data['data'] = $teamManager;
+        $data['fixture_list'] = $fixturData;
+        $data['user_list'] = $userList;
+        return response()->json($data);
+    }
+    public function saveManageAcessByFixture(Request $request)
+    {
+        $obj = new FeedbackManagerAccess;
+        $obj->club_id = $this->userDetail->id;
+        $obj->user_id = $request->user;
+        $obj->type = 2;
+        if ($obj->save()) {
+            foreach ($request->team as $key => $value) {
+                $objTeam = new FeedbackManagerAccessFixture;
+                $objTeam->feedback_manager_access_id  = $obj->id;
+                $objTeam->fixture_id  = $value;
+                $objTeam->save();
+            }
+        }
+
+        $selectedIds = FeedbackManagerAccess::where('club_id', $this->userDetail->id)->pluck('user_id', 'user_id')->all();
+        $userList = FeedbackCochAccess::leftJoin('users', 'users.id', 'feedback_coch_access.user_id')
+            ->where('feedback_coch_access.club_id', $this->userDetail->id)
+            ->whereNotIn('feedback_coch_access.user_id', $selectedIds)
+            ->select('users.full_name', 'feedback_coch_access.user_id')->get();
+
+        $teamManager = FeedbackManagerAccess::leftJoin('users', 'users.id', 'feedback_manager_access.user_id')
+            ->where(['club_id' => $this->userDetail->id])
+            ->select('feedback_manager_access.*', 'users.full_name as username')
+            ->get();
+
+
+
+        $selectedFixtureId = FeedbackManagerAccessFixture::leftJoin('feedback_manager_access', 'feedback_manager_access.id', '=', 'feedback_manager_access_fixtures.feedback_manager_access_id')
+            ->where('feedback_manager_access.club_id', $this->userDetail->id)
+            ->pluck('feedback_manager_access_fixtures.fixture_id', 'feedback_manager_access_fixtures.id')->all();
+
+        $fixturData = Fixture::leftJoin('teams', 'teams.id', '=', 'fixtures.team')
+            ->where('fixtures.status', '!=', 3)
+            ->where('fixtures.start_date', '>', "2022-10-19")
+            ->where('fixtures.club', $this->userDetail->id)
+            ->whereNotIn('fixtures.id', $selectedFixtureId)
+            ->select('fixtures.*', 'teams.name as team_name')
+            ->get();
+
+        $data['status'] = 200;
+        $data['data'] = $teamManager;
+        $data['user_list'] = $userList;
+        $data['fixture_list'] = $fixturData;
+        $data['message'] = "Manage Access by Team has been added successfully.";
+        return response()->json($data);
+    }
+
+    function showFixtureListing(Request $request)
+    {
+        $id = $request->id;
+        $selectedFixtureId = FeedbackManagerAccessFixture::leftJoin('feedback_manager_access', 'feedback_manager_access.id', '=', 'feedback_manager_access_fixtures.feedback_manager_access_id')
+            ->where('feedback_manager_access.id', $id)
+            ->pluck('feedback_manager_access_fixtures.fixture_id', 'feedback_manager_access_fixtures.id')->all();
+
+        $fixturData = Fixture::leftJoin('teams', 'teams.id', '=', 'fixtures.team')
+            ->whereIn('fixtures.id', $selectedFixtureId)
+            ->select('fixtures.*', 'teams.name as team_name')
+            ->get();
+
+        $fixturDataTemp = FeedbackManagerAccessFixture::leftJoin('fixtures', 'fixtures.id', '=', 'feedback_manager_access_fixtures.fixture_id')->leftJoin('teams', 'teams.id', '=', 'fixtures.team')
+            ->where('feedback_manager_access_fixtures.feedback_manager_access_id', $id)
+            ->select('feedback_manager_access_fixtures.*', 'teams.name as team_name', 'fixtures.start_date', 'fixtures.end_date')
+            ->get();
+
+        $data['status'] = 200;
+        $data['data'] = $fixturDataTemp;
+        return response()->json($data);
+    }
+    function deleteManagerFixture(Request $request)
+    {
+        $managerAccessid = $request->manager_access_id;
+        FeedbackManagerAccessFixture::where('id', $request->id)->delete();
+        $isManagerAccessIdExist = FeedbackManagerAccessFixture::where('feedback_manager_access_id', $managerAccessid)->value('id');
+        if (empty($isManagerAccessIdExist)) {
+            FeedbackManagerAccess::where('id', $request->id)->delete();
+        }
+        $data['status'] = 200;
+        $data['message'] = "Fixture deleted successfully.";
         return response()->json($data);
     }
 }

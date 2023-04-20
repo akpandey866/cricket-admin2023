@@ -193,7 +193,11 @@ $router->group(
         $router->post('/feedback-fantasy/save-manager', 'FeedbackFantasyController@saveFeeddbackManager');
         $router->post('/feedback-fantasy/delete-manager', 'FeedbackFantasyController@deleteFeedbackManager');
         $router->get('/feedback-fantasy/manage-access-by-team', 'FeedbackFantasyController@manageAccessByTeam');
+        $router->get('/feedback-fantasy/manage-access-by-fixtures', 'FeedbackFantasyController@manageAccessByFixture');
         $router->post('/feedback-fantasy/save-manage-access-by-team', 'FeedbackFantasyController@saveManageAcessByTeam');
+        $router->post('/feedback-fantasy/save-manage-access-by-fixtures', 'FeedbackFantasyController@saveManageAcessByFixture');
+        $router->get('/feedback-fantasy/show-fixture-listing/{id}', 'FeedbackFantasyController@showFixtureListing');
+        $router->get('/feedback-fantasy/delete-manager-fixture/{id}/{manager_access_id}', 'FeedbackFantasyController@deleteManagerFixture');
     }
 );
 
