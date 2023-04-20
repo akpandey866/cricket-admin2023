@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 
 class TeamController extends Controller
 {
+    private $userDetail = null;
     public function __construct()
     {
         $this->userDetail = auth('api')->user();

@@ -8,7 +8,9 @@ use App\Model\UserTeams;
 use App\Model\FeedbackManagerAccess;
 use App\Model\FeedbackManagerAccessTeam;
 use App\Model\FeedbackManagerAccessFixture;
+use App\Model\FeedbackPointSystem;
 use App\Model\Fixture;
+use App\Model\DisplayView;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -180,6 +182,15 @@ class FeedbackFantasyController extends Controller
             ->where('feedback_coch_access.club_id', $this->userDetail->id)
             ->whereNotIn('feedback_coch_access.user_id', $selectedIds)
             ->select('users.full_name', 'feedback_coch_access.user_id')->get();
+
+        $selectedIds = FeedbackManagerAccess::where('club_id', $this->userDetail->id)->pluck('user_id', 'user_id')->all();
+        $userList = FeedbackCochAccess::leftJoin('users', 'users.id', 'feedback_coch_access.user_id')
+            ->where('feedback_coch_access.club_id', $this->userDetail->id)
+            ->whereNotIn('feedback_coch_access.user_id', $selectedIds)
+            ->select('users.full_name', 'feedback_coch_access.user_id')->get();
+
+
+
         $data = [];
         $map = $teamLists->map(function ($item) {
 
@@ -215,6 +226,7 @@ class FeedbackFantasyController extends Controller
             ->select('users.full_name', 'feedback_coch_access.user_id')->get();
         $teamManager = FeedbackManagerAccess::leftJoin('users', 'users.id', 'feedback_manager_access.user_id')
             ->where(['club_id' => $this->userDetail->id])
+            ->where('type', 1)
             ->select('feedback_manager_access.*', 'users.full_name as username')
             ->get();
         $data['status'] = 200;
@@ -306,14 +318,6 @@ class FeedbackFantasyController extends Controller
     function showFixtureListing(Request $request)
     {
         $id = $request->id;
-        $selectedFixtureId = FeedbackManagerAccessFixture::leftJoin('feedback_manager_access', 'feedback_manager_access.id', '=', 'feedback_manager_access_fixtures.feedback_manager_access_id')
-            ->where('feedback_manager_access.id', $id)
-            ->pluck('feedback_manager_access_fixtures.fixture_id', 'feedback_manager_access_fixtures.id')->all();
-
-        $fixturData = Fixture::leftJoin('teams', 'teams.id', '=', 'fixtures.team')
-            ->whereIn('fixtures.id', $selectedFixtureId)
-            ->select('fixtures.*', 'teams.name as team_name')
-            ->get();
 
         $fixturDataTemp = FeedbackManagerAccessFixture::leftJoin('fixtures', 'fixtures.id', '=', 'feedback_manager_access_fixtures.fixture_id')->leftJoin('teams', 'teams.id', '=', 'fixtures.team')
             ->where('feedback_manager_access_fixtures.feedback_manager_access_id', $id)
@@ -324,16 +328,103 @@ class FeedbackFantasyController extends Controller
         $data['data'] = $fixturDataTemp;
         return response()->json($data);
     }
+    function showTeamListing(Request $request)
+    {
+        $teamData = FeedbackManagerAccessTeam::leftJoin('teams', 'teams.id', '=', 'feedback_manager_access_team.team_id')
+            ->where('feedback_manager_access_team.feedback_manager_access_id', $request->id)
+            ->select('feedback_manager_access_team.*', 'teams.name as team_name')
+            ->get();
+
+        $data['status'] = 200;
+        $data['data'] = $teamData;
+        return response()->json($data);
+    }
     function deleteManagerFixture(Request $request)
     {
         $managerAccessid = $request->manager_access_id;
         FeedbackManagerAccessFixture::where('id', $request->id)->delete();
         $isManagerAccessIdExist = FeedbackManagerAccessFixture::where('feedback_manager_access_id', $managerAccessid)->value('id');
         if (empty($isManagerAccessIdExist)) {
-            FeedbackManagerAccess::where('id', $request->id)->delete();
+            FeedbackManagerAccess::where('id', $managerAccessid)->delete();
         }
         $data['status'] = 200;
         $data['message'] = "Fixture deleted successfully.";
+        return response()->json($data);
+    }
+
+    function deleteManagerTeam(Request $request)
+    {
+        $managerAccessid = $request->manager_access_id;
+        FeedbackManagerAccessTeam::where('id', $request->id)->delete();
+        $isManagerAccessIdExist = FeedbackManagerAccessTeam::where('feedback_manager_access_id', $managerAccessid)->value('id');
+        if (empty($isManagerAccessIdExist)) {
+            FeedbackManagerAccess::where('id', $request->managerAccessid)->delete();
+        }
+        $data['status'] = 200;
+        $data['message'] = "Team deleted successfully.";
+        return response()->json($data);
+    }
+    function deleteManagerAccess(Request $request)
+    {
+        FeedbackManagerAccess::where('id', $request->id)->delete();
+        $data['status'] = 200;
+        $data['message'] = "Fixture deleted successfully.";
+        return response()->json($data);
+    }
+    function feedbackPointSystem(Request $request)
+    {
+        $getFeedbackStars = array(1 => '1 Star', 2 => '2 Star', 3 => '3 Star', 4 => '4 Star', 5 => '5 Star', 6 => '6 Star', 7 => '7 Star', 8 => '8 Star', 9 => '9 Star', 10    => '10 Star');
+        $pointDetails = FeedbackPointSystem::where('club_id', $this->userDetail->id)->exists();
+        if (!$pointDetails) {
+            foreach ($getFeedbackStars as $key => $value) {
+                $obj = new FeedbackPointSystem;
+                $obj->name = $key;
+                $obj->description = "";
+                $obj->points = 0.00;
+                $obj->club_id = $this->userDetail->id;
+                $obj->save();
+            }
+        }
+        $pointDetails = FeedbackPointSystem::where('club_id', $this->userDetail->id)->get();
+        $data['status'] = 200;
+        $data['data'] = $pointDetails;
+        return response()->json($data);
+    }
+    function saveFeedbackPointSystem(Request $request)
+    {
+        foreach ($request->data as $key => $value) {
+            $obj = FeedbackPointSystem::find($value['id']);
+            $obj->name = $value['name'];
+            $obj->points = $value['points'];
+            $obj->description = $value['description'];
+            $obj->save();
+        }
+        $pointDetails = FeedbackPointSystem::where('club_id', $this->userDetail->id)->get();
+        $data['status'] = 200;
+        $data['data'] = $pointDetails;
+        $data['message'] = "Feedback Point system updated successfully.";
+        return response()->json($data);
+    }
+
+    function displaySetting()
+    {
+        $details = DisplayView::where('club_id', $this->userDetail->id)->first();
+        $data['status'] = 200;
+        $data['data'] = $details;
+        return response()->json($data);
+    }
+    function updateDisplaySetting(Request $request)
+    {
+        $id = DisplayView::where('club_id', $this->userDetail->id)->orderby('id', 'desc')->value('id');
+        if (!empty($id)) {
+            DisplayView::where('club_id', $this->userDetail->id)->update(['view' => $request->view]);
+        } else {
+            $obj =  new DisplayView();
+            $obj->view = $request->view;
+            $obj->save();
+        }
+        $data['status'] = 200;
+        $data['message'] = "Display setting updated successfully.";
         return response()->json($data);
     }
 }

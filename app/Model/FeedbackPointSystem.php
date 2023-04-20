@@ -1,12 +1,11 @@
 <?php
-namespace App\Model; 
 
-use Illuminate\Auth\Authenticatable;
+namespace App\Model;
+
 use Illuminate\Database\Eloquent\Model;
-use Eloquent,DB,App;
 
-class FeedbackPointSystem extends Eloquent 
+class FeedbackPointSystem extends Model
 {
 
-	protected $table = 'feedback_point_system';
+    protected $table = 'feedback_point_system';
 }
