@@ -205,6 +205,13 @@ $router->group(
         $router->post('/feedback-fantasy/save-feedback-point-system', 'FeedbackFantasyController@saveFeedbackPointSystem');
         $router->get('/feedback-fantasy/display-setting', 'FeedbackFantasyController@displaySetting');
         $router->post('/feedback-fantasy/update-display-setting', 'FeedbackFantasyController@updateDisplaySetting');
+
+        // Fixture Voting routing start here
+        $router->get('/fixture-voting/listing', 'FixtureVotingController@index');
+        $router->get('/fixture-voting/get-fixture-voting-data/{fixture_id}', 'FixtureVotingController@getFixtureVote');
+        $router->get('/fixture-voting/get-average-fixture-voting/{fixture_id}', 'FixtureVotingController@getAverageFitureVote');
+        $router->get('/fixture-voting/user-player-rating/{fixture_id}', 'FixtureVotingController@userPlayerRating');
+        $router->get('/fixture-voting/user-player-rating-modal/{fixture_id}/{user_id}', 'FixtureVotingController@userPlayerRatingModal');
     }
 );
 

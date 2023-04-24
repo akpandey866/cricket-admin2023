@@ -1,12 +1,11 @@
 <?php
-namespace App\Model; 
 
-use Illuminate\Auth\Authenticatable;
+namespace App\Model;
+
 use Illuminate\Database\Eloquent\Model;
-use Eloquent,DB,App;
 
-class FixtureVoting extends Eloquent 
+class FixtureVoting extends Model
 {
-	protected $table = 'fixture_voting';
-	protected $guarded = [];
+    protected $table = 'fixture_voting';
+    protected $guarded = [];
 }

@@ -13,7 +13,6 @@ use App\Model\Fixture;
 use App\Model\DisplayView;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 
 class FeedbackFantasyController extends Controller
