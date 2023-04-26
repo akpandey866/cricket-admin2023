@@ -6,6 +6,7 @@ use App\Model\Player;
 use App\Model\PlayerPrice;
 use App\Model\Team;
 use App\Model\DropDown;
+use App\Model\User;
 use Illuminate\Http\Request;
 use Validator;
 
@@ -138,6 +139,19 @@ class PlayerController extends Controller
     public function fantasyValue(Request $request)
     {
         $customValue = PlayerPrice::where('club_id', $this->userDetail->id)->orderby('price', 'desc')->get();
+        $defaultPlayerPrice = User::where('id', $this->userDetail->id)->value('player_price_type');
+        if ($customValue->isEmpty()) {
+            for ($i = 1; $i <= 20; $i++) {
+                $obj = new PlayerPrice;
+                if ($request->priceId) {
+                    $obj = PlayerPrice::findOrFail($request->priceId);
+                }
+                $obj->club_id = $this->userDetail->id;
+                $obj->price = 0;
+                $obj->price_name = "";
+                $obj->save();
+            }
+        }
         $defaultValue = [
             ['value' => '15.00', 'name' => '$15.00m'],
             ['value' => '14.50', 'name' => '$14.50m'],
@@ -162,6 +176,7 @@ class PlayerController extends Controller
         $data['status'] = 200;
         $data['custom_value'] = $customValue;
         $data['default_value'] = $defaultValue;
+        $data['default_player_price'] = $defaultPlayerPrice;
         return response()->json($data);
     }
     public function updateFantastValue(Request $request)
@@ -200,5 +215,28 @@ class PlayerController extends Controller
             $data['message'] = "Player price has been updated successfully.";
             return response()->json($data);
         }
+    }
+    function  savePlayerPrice(Request $request)
+    {
+        foreach ($request->data as $key => $value) {
+            $obj =     PlayerPrice::find($value['id']);
+            $obj->price = $value['price'];
+            $obj->price_name = "$" . round($value['price'], 2) . "m";
+            $obj->save();
+        }
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Fantasy Values has been saved successfully.";
+        return response()->json($data);
+    }
+    function saveDefaultPriceStructure(Request $request)
+    {
+        $obj =  User::find($this->userDetail->id);
+        $obj->player_price_type = $request->salary_structure;
+        $obj->save();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Default Player Price updated successfully.";
+        return response()->json($data);
     }
 }

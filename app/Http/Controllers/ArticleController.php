@@ -91,11 +91,10 @@ class ArticleController extends Controller
                 $obj->thumb_image        =    $image;
             }
         }
-
         $obj->save();
-
         $data['success'] = true;
         $data['status'] = 200;
+        $data['data'] = $obj;
         $data['message'] = "Article has been added successfully.";
         return response()->json($data);
     }
@@ -111,19 +110,18 @@ class ArticleController extends Controller
         }
         return $slug;
     } //end getSlug()
+
     public function deleteArticle(Request $request)
     {
-        try {
-            Article::where('id', $request->id)->delete();
-            $data['status'] = 200;
-            // $data['data'] = $result;
-            $data['message'] = "Article has been deleted successfully.";
-            return response()->json($data);
-        } catch (\Exception $e) {
-            $data['success'] = false;
-            $data['status'] = 501;
-            $data['message'] = $e->getMessage();
-        }
+        $details = Article::where('id', $request->id)->first();
+        $mainImagePath = "uploads/articles/" . $details->image;
+        $thumbImagePath = "uploads/articles/" . $details->thumb_image;
+        $this->imageDelete($mainImagePath);
+        $this->imageDelete($thumbImagePath);
+        Article::where('id', $request->id)->delete();
+        $data['status'] = 200;
+        $data['message'] = "Article has been deleted successfully.";
+        return response()->json($data);
     }
 
     public function articleDetail(Request $request)

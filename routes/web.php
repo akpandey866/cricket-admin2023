@@ -71,10 +71,19 @@ $router->group(
 
         // Bonus Card
         $router->get('/common/bonus-cards', 'CommonController@bonusCard');
+        $router->get('/common/get-bonus-card-details/{round}', 'CommonController@getBonusCardDetail');
         $router->get('/common/club-players', 'CommonController@clubPlayer');
-        $router->get('/common/bonus-card-players/{round}', 'CommonController@bonusCardPlayer');
+        $router->get('/common/bonus-card-selected-players/{round}', 'CommonController@bonusCardSelectedPlayer');
+        $router->get('/common/bonus-card-players/{team_power_id}', 'CommonController@bonusCardPlayer');
         $router->post('/common/save-bonus-card', 'CommonController@saveBonusCard');
         $router->post('/common/save-bonus-card-player-point', 'CommonController@saveBonusCardPlayerPoint');
+
+        // Team Of the Round
+        $router->get('/common/get-totw-listing', 'CommonController@totwListing');
+        $router->post('/common/save-totw', 'CommonController@saveTotw');
+        $router->get('/common/totw-selected-players/{round}', 'CommonController@totwSelectedPlayer');
+        $router->get('/common/totw-player-list/{round}', 'CommonController@totwPlayerList');
+        $router->post('/common/update-totw-player-points', 'CommonController@updateTotwPlayerPoint');
 
         // Branding
         $router->get('/common/branding', 'CommonController@branding');
@@ -100,9 +109,13 @@ $router->group(
         $router->get('/players/get-position-team-val-bat-bowl-style', 'PlayerController@getTeamPositionValueBatBowlStyle');
         $router->post('/players/edit-player', 'PlayerController@editPlayer');
         $router->post('/players/save-player', 'PlayerController@savePlayer');
+
         // Fantasy Values(Player Price) Spot Routing
         $router->get('/players/fantasy-values', 'PlayerController@fantasyValue');
         $router->post('/players/update-fantasy-values', 'PlayerController@updateFantastValue');
+        $router->post('/players/save-player-prices', 'PlayerController@savePlayerPrice');
+        $router->post('/players/save-default-price-structure', 'PlayerController@saveDefaultPriceStructure');
+
 
         // Player Availability
         $router->get('/player-availabilities/listing', 'PlayerAvailabilityController@index');

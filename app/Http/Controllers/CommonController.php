@@ -11,6 +11,8 @@ use App\Model\GamePower;
 use App\Model\GameUserControl;
 use App\Model\Team;
 use App\Model\Branding;
+use App\Model\TeamOfTheWeek;
+use App\Model\TeamOfTheWeekPlayer;
 use App\Model\VerifyUser;
 use App\Model\UserTeams;
 use Illuminate\Http\Request;
@@ -64,10 +66,47 @@ class CommonController extends Controller
             return $data;
         });
 
+
         $data['success'] = true;
         $data['status'] = 200;
         $data['data'] = $map;
         $data['message'] = "Data fetched sucessfully.";
+        return response()->json($data);
+    }
+
+
+    public function bonusCardSelectedPlayer(Request $request)
+    {
+        $query   = Player::where('club', $this->userDetail->id)->select('full_name', 'id')->orderBy('full_name', 'ASC')->get();
+        $teamPoweId = TeamPower::where('club_id', $this->userDetail->id)->where('gw_number', $request->round)->value('id');
+        $teamPlayers = TeamPowerPlayer::where('team_power_id', $teamPoweId)->pluck('player_id', 'player_id')->all();
+        $data = [];
+        $selected = false;
+        $map = $query->map(function ($item) use ($teamPlayers, $selected) {
+            if (in_array($item->id, $teamPlayers)) {
+                $selected = true;
+            }
+            $data['value'] = $item->id;
+            $data['text'] = $item->full_name;
+            $data['selected'] = $selected;
+            return $data;
+        });
+
+
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $map;
+        $data['message'] = "Data fetched sucessfully.";
+        return response()->json($data);
+    }
+    function getBonusCardDetail(Request $request)
+    {
+        $details = TeamPower::where('club_id', $this->userDetail->id)->where('gw_number', $request->round)->with(['getTeamPlayer'])->first();
+        $playerList = TeamPowerPlayer::where('team_power_id', $details->id)->pluck('player_id', 'id')->all();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $details;
+        $data['selected_player'] = $playerList;
         return response()->json($data);
     }
 
@@ -87,8 +126,8 @@ class CommonController extends Controller
         $saved = $obj->save();
 
         if ($saved) {
-            TeamPowerPlayer::where('team_power_id', $obj->id)->delete();
             if (!empty($request->player)) {
+                TeamPowerPlayer::where('team_power_id', $obj->id)->delete();
                 foreach ($request->player as $value) {
                     $playerObj = new TeamPowerPlayer;
                     $playerObj->team_power_id = $obj->id;
@@ -105,37 +144,28 @@ class CommonController extends Controller
 
     public function bonusCardPlayer(Request $request)
     {
-        $tpId = TeamPower::where('club_id', $this->userDetail->id)->where('gw_number', $request->round)->value('id');
-
         $teamPowerPlayer = TeamPowerPlayer::leftJoin('players', 'players.id', '=', 'team_power_players.player_id')
-            ->where('team_power_id', $tpId)
-            ->select('players.full_name as player_name', 'team_power_players.player_id as player_id')->get();
-
-        $defaultValueArray = TeamPowerPlayer::leftJoin('players', 'players.id', '=', 'team_power_players.player_id')
-            ->where('team_power_id', $tpId)->select('bonus', 'player_id')->get();
-
+            ->where('team_power_id', $request->team_power_id)
+            ->select('team_power_players.*', 'players.full_name as player_name')->get();
 
         $data['success'] = true;
         $data['status'] = 200;
         $data['data'] = $teamPowerPlayer;
-        $data['bonus_card_values'] = $defaultValueArray;
-        $data['message'] = "Data fetched sucessfully.";
         return response()->json($data);
     }
     public function saveBonusCardPlayerPoint(Request $request)
     {
 
-        if (!empty($request->player)) {
-            foreach ($request->player as $value) {
-                $playerObj = TeamPowerPlayer::find($request->gradeId);
-                $playerObj->team_power_id = $value->id;
-                $playerObj->player_id = $value;
+        if (!empty($request->data)) {
+            foreach ($request->data as $value) {
+                $playerObj = TeamPowerPlayer::find($value['id']);
+                $playerObj->bonus = $value['bonus'];
                 $playerObj->save();
             }
         }
         $data['success'] = true;
         $data['status'] = 200;
-        $data['message'] = "Bonus Card has been added successfully.";
+        $data['message'] = "Bonus Card Point has been added successfully.";
         return response()->json($data);
     }
     public function powerControl(Request $request)
@@ -381,6 +411,96 @@ class CommonController extends Controller
         $data['status'] = 200;
         $data['data'] = $result;
         $data['message'] = "User verified successfully.";
+        return response()->json($data);
+    }
+    function totwListing(Request $request)
+    {
+        $result  = GameweekRound::where('gameweek_rounds.club_id', $this->userDetail->id)->get();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $result;
+        return response()->json($data);
+    }
+    function saveTotw(Request $request)
+    {
+        $getGWnumber = TeamOfTheWeek::where('club_id', $this->userDetail->id)->where('gw_number', $request->round)->first();
+        if (!empty($TeamOfTheWeek)) {
+            $obj = TeamOfTheWeek::find($getGWnumber->id);
+        } else {
+            $obj = new TeamOfTheWeek();
+        }
+        $obj->club_id    =  $this->userDetail->id;
+        $obj->gw_number    =  $request->round;
+        $saved = $obj->save();
+        if ($saved) {
+            if (!empty($request->player)) {
+                TeamOfTheWeekPlayer::where('team_of_the_week_id', $obj->id)->delete();
+                foreach ($request->player as $value) {
+                    $playerObj = new TeamOfTheWeekPlayer;
+                    $playerObj->team_of_the_week_id = $obj->id;
+                    $playerObj->player_id = $value;
+                    $playerObj->bonus = 0;
+                    $playerObj->save();
+                }
+            }
+        }
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Bonus Card has been added successfully.";
+        return response()->json($data);
+    }
+    public function totwSelectedPlayer(Request $request)
+    {
+        $query   = Player::where('club', $this->userDetail->id)->select('full_name', 'id')->orderBy('full_name', 'ASC')->get();
+        $totwId = TeamOfTheWeek::where('club_id', $this->userDetail->id)->where('gw_number', $request->round)->value('id');
+        $totwPlayers = TeamOfTheWeekPlayer::where('team_of_the_week_id', $totwId)->pluck('player_id', 'player_id')->all();
+        $data = [];
+        $selected = false;
+        $map = $query->map(function ($item) use ($totwPlayers, $selected) {
+            if (in_array($item->id, $totwPlayers)) {
+                $selected = true;
+            }
+            $data['value'] = $item->id;
+            $data['text'] = $item->full_name;
+            $data['selected'] = $selected;
+            return $data;
+        });
+
+
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $map;
+        return response()->json($data);
+    }
+    function totwPlayerList(Request $request)
+    {
+
+        $details = TeamOfTheWeek::where('club_id', $this->userDetail->id)->where('gw_number', $request->round)->first();
+        $totwPlayerList = [];
+        if (!empty($details)) {
+            $totwPlayerList = TeamOfTheWeekPlayer::leftJoin('players', 'players.id', '=', 'team_of_the_week_players.player_id')
+                ->where('team_of_the_week_id', $details->id)
+                ->select('team_of_the_week_players.*', 'players.full_name as player_name')->get();
+        }
+
+
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $totwPlayerList;
+        return response()->json($data);
+    }
+    function updateTotwPlayerPoint(Request $request)
+    {
+        if (!empty($request->data)) {
+            foreach ($request->data as $value) {
+                $playerObj = TeamOfTheWeekPlayer::find($value['id']);
+                $playerObj->bonus = $value['bonus'];
+                $playerObj->save();
+            }
+        }
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Team of the week player points has been updated successfully.";
         return response()->json($data);
     }
 }
