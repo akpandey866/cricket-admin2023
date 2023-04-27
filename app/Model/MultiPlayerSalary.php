@@ -1,10 +1,10 @@
 <?php
-namespace App\Model; 
+
+namespace App\Model;
 
 use Illuminate\Database\Eloquent\Model;
-use Eloquent,DB,App;
 
-class MultiPlayerSalary extends Eloquent
+class MultiPlayerSalary extends Model
 {
-	//protected $table = 'multi_player'; 
+    protected $table = 'multi_player_salaries';
 }

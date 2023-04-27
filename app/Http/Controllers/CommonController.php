@@ -13,8 +13,10 @@ use App\Model\Team;
 use App\Model\Branding;
 use App\Model\TeamOfTheWeek;
 use App\Model\TeamOfTheWeekPlayer;
+use App\Model\User;
 use App\Model\VerifyUser;
 use App\Model\UserTeams;
+use App\Model\MultiPlayerSalary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
@@ -215,19 +217,19 @@ class CommonController extends Controller
         $type = $request->type;
         $status = ($request->status) ? 0 : 1;
         // if ($type == "captain_cards_status") {
-        //     $checkIsPaid = GamePower::where('club', Auth::guard('admin')->user()->id)->value('tripal_cap_paid');
+        //     $checkIsPaid = GamePower::where('club', $this->userDetail->id)->value('tripal_cap_paid');
         // }
         // if ($type == "twelfth_men_cards_status") {
-        //     $checkIsPaid = GamePower::where('club', Auth::guard('admin')->user()->id)->value('twelfthman_paid');
+        //     $checkIsPaid = GamePower::where('club', $this->userDetail->id)->value('twelfthman_paid');
         // }
         // if ($type == "flipper_cards_status") {
-        //     $checkIsPaid = GamePower::where('club', Auth::guard('admin')->user()->id)->value('fliper_paid');
+        //     $checkIsPaid = GamePower::where('club', $this->userDetail->id)->value('fliper_paid');
         // }
         // if ($type == "dealer_cards_status") {
-        //     $checkIsPaid = GamePower::where('club', Auth::guard('admin')->user()->id)->value('dealer_paid');
+        //     $checkIsPaid = GamePower::where('club', $this->userDetail->id)->value('dealer_paid');
         // }
         // if ($type == "free_trades_paid") {
-        //     $checkIsPaid = GamePower::where('club', Auth::guard('admin')->user()->id)->value('free_trades_paid');
+        //     $checkIsPaid = GamePower::where('club', $this->userDetail->id)->value('free_trades_paid');
         // }
 
 
@@ -501,6 +503,42 @@ class CommonController extends Controller
         $data['success'] = true;
         $data['status'] = 200;
         $data['message'] = "Team of the week player points has been updated successfully.";
+        return response()->json($data);
+    }
+
+    function editGameStructure(Request $request)
+    {
+        $msg = "";
+        if ($request->type == 1) {
+            User::where('id', $this->userDetail->id)->update(['multi_players_id' => $request->structure]);
+            $msg = "Game Structure has been updated successfully.";
+        }
+        if ($request->type == 2) {
+            $multiPlayerId = User::where('id', $this->userDetail->id)->value('multi_players_id');
+            $id = MultiPlayerSalary::where(['club_id' => $this->userDetail->id, 'multi_player_id' => $multiPlayerId])->value('id');
+            $obj  = new MultiPlayerSalary;
+            if (!empty($id)) {
+                $obj  = MultiPlayerSalary::find($id);
+            }
+            $obj->club_id = $this->userDetail->id;
+            $obj->multi_player_id = $multiPlayerId;
+            $obj->salary = ($request->salary_type == 1) ? 99 : $request->salary;
+            $obj->is_default_salary = $request->salary_type;
+            $obj->save();
+
+            $msg = "Salary Cap has been updated successfully.";
+        }
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = $msg;
+        return response()->json($data);
+    }
+    function getGameStrucureInfo(Request $request)
+    {
+        $getStucture = User::where('id', $this->userDetail->id)->value('multi_players_id');
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['game_structure'] = $getStucture;
         return response()->json($data);
     }
 }

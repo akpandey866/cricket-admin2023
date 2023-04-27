@@ -160,6 +160,9 @@ $router->group(
         Route::get('/common/verify-users', 'CommonController@verifyUsers');
         Route::post('/common/save-verify-user', 'CommonController@saveVerifyUser');
 
+        // Game Structure & Salary Cap
+        Route::post('/common/edit-game-structure', 'CommonController@editGameStructure');
+        Route::get('/common/get-game-structure-info', 'CommonController@getGameStrucureInfo');
 
         // Article Routing
         $router->get('/articles/listing', 'ArticleController@index');
