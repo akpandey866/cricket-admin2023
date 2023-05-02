@@ -7,6 +7,7 @@ use App\Model\PlayerPrice;
 use App\Model\Team;
 use App\Model\DropDown;
 use App\Model\User;
+use App\Model\MultiPlayer;
 use Illuminate\Http\Request;
 use Validator;
 
@@ -237,6 +238,41 @@ class PlayerController extends Controller
         $data['success'] = true;
         $data['status'] = 200;
         $data['message'] = "Default Player Price updated successfully.";
+        return response()->json($data);
+    }
+    function savePlayeStructure(Request $request)
+    {
+
+        $multiPlayerId = MultiPlayer::where('club_id', $this->userDetail->id)->value('id');
+        $obj = new MultiPlayer;
+        if (!empty($multiPlayerId)) {
+            $obj = MultiPlayer::find($multiPlayerId);
+        }
+        $obj->club_id = $this->userDetail->id;
+        $obj->min_bats = $request->min_bat;
+        $obj->max_bats = $request->max_bat;
+        $obj->min_bowls = $request->min_bowl;
+        $obj->max_bowls = $request->max_bowl;
+        $obj->min_ar = $request->min_ar;
+        $obj->max_ar = $request->max_ar;
+        $obj->min_wks = $request->min_wk;
+        $obj->max_wks = $request->max_wk;
+        $saved = $obj->save();
+
+        if ($saved) {
+            User::where('id', $this->userDetail->id)->update(['multi_players_id' => $multiPlayerId]);
+        }
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Player Structure has been saved successfully.";
+        return response()->json($data);
+    }
+    function getPlayerStructureInfo(Request $request)
+    {
+        $details = MultiPlayer::where('club_id', $this->userDetail->id)->first();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $details;
         return response()->json($data);
     }
 }

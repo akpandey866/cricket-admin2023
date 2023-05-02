@@ -90,7 +90,6 @@ $router->group(
         $router->post('/common/edit-branding', 'CommonController@editBranding');
 
         // Game Spot Routing
-        $router->get('/common/game-spot', 'CommonController@gameSpot');
         $router->post('/common/update-game-spot', 'CommonController@updateGameSpot');
 
         // Trades
@@ -109,6 +108,8 @@ $router->group(
         $router->get('/players/get-position-team-val-bat-bowl-style', 'PlayerController@getTeamPositionValueBatBowlStyle');
         $router->post('/players/edit-player', 'PlayerController@editPlayer');
         $router->post('/players/save-player', 'PlayerController@savePlayer');
+        $router->post('players/save-player-structure', 'PlayerController@savePlayeStructure');
+        $router->get('players/get-player-structure-info', 'PlayerController@getPlayerStructureInfo');
 
         // Fantasy Values(Player Price) Spot Routing
         $router->get('/players/fantasy-values', 'PlayerController@fantasyValue');
@@ -228,6 +229,13 @@ $router->group(
         $router->get('/fixture-voting/get-average-fixture-voting/{fixture_id}', 'FixtureVotingController@getAverageFitureVote');
         $router->get('/fixture-voting/user-player-rating/{fixture_id}', 'FixtureVotingController@userPlayerRating');
         $router->get('/fixture-voting/user-player-rating-modal/{fixture_id}/{user_id}', 'FixtureVotingController@userPlayerRatingModal');
+
+        //Bracket Battle routin start here
+        $router->get('/bracket-battle', 'BracketBattleController@index');
+        $router->post('/bracket-battle/save-bracket-battle', 'BracketBattleController@saveBracketBattle');
+        $router->get('/bracket-battle/battle-listing/{id}', 'BracketBattleController@battleListing');
+        $router->post('/bracket-battle/update-round-battle', 'BracketBattleController@updateRoundBattle');
+        $router->post('/bracket-battle/match-completion', 'BracketBattleController@matchCompletion');
     }
 );
 

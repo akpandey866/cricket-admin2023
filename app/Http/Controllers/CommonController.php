@@ -242,14 +242,6 @@ class CommonController extends Controller
         return response()->json($data);
     }
 
-    public function gameSpot(Request $request)
-    {
-        $details = GameUserControl::where('club', $this->userDetail->id)->first();
-        $data['success'] = true;
-        $data['status'] = 200;
-        $data['data'] = $details;
-        return response()->json($data);
-    }
     public function updateGameSpot(Request $request)
     {
         $result = GameUserControl::where('club', $this->userDetail->id)->first();
@@ -511,6 +503,7 @@ class CommonController extends Controller
         $msg = "";
         if ($request->type == 1) {
             User::where('id', $this->userDetail->id)->update(['multi_players_id' => $request->structure]);
+            MultiPlayerSalary::where(['club_id' => $this->userDetail->id])->update(['multi_player_id' => $request->structure]);
             $msg = "Game Structure has been updated successfully.";
         }
         if ($request->type == 2) {
@@ -536,8 +529,10 @@ class CommonController extends Controller
     function getGameStrucureInfo(Request $request)
     {
         $getStucture = User::where('id', $this->userDetail->id)->value('multi_players_id');
+        $gameSpot = GameUserControl::where('club', $this->userDetail->id)->first();
         $data['success'] = true;
         $data['status'] = 200;
+        $data['game_spot'] = $gameSpot;
         $data['game_structure'] = $getStucture;
         return response()->json($data);
     }

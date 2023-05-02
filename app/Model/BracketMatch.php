@@ -1,10 +1,11 @@
 <?php
-namespace App\Model; 
 
-use Eloquent,Session,App,DB;
+namespace App\Model;
 
-class BracketMatch extends Eloquent 
-    
+use Illuminate\Database\Eloquent\Model;
+
+class BracketMatch extends Model
+
 {
-  	protected $table = 'bracket_matches';	
+    protected $table = 'bracket_matches';
 }

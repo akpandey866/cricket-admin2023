@@ -1,10 +1,11 @@
 <?php
-namespace App\Model; 
 
-use Eloquent,Session,App,DB;
+namespace App\Model;
 
-class BracketRoundPoint extends Eloquent 
-    
+use Illuminate\Database\Eloquent\Model;
+
+class BracketRoundPoint extends Model
+
 {
-  	protected $table = 'bracket_round_points';	
+    protected $table = 'bracket_round_points';
 }
