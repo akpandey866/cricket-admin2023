@@ -120,7 +120,8 @@ $router->group(
 
         // Player Availability
         $router->get('/player-availabilities/listing', 'PlayerAvailabilityController@index');
-        $router->get('/player-availabilities/availability-details/{id}', 'PlayerAvailabilityController@playerDetail');
+        $router->get('/player-availabilities/edit-player-list', 'PlayerAvailabilityController@editPlayerList');
+        $router->get('/player-availabilities/availability-details/{id}', 'PlayerAvailabilityController@availabilityDetail');
         $router->post('/player-availabilities/save-availability', 'PlayerAvailabilityController@saveAvailability');
         $router->post('/player-availabilities/edit-availability', 'PlayerAvailabilityController@editAvailability');
 
@@ -236,6 +237,8 @@ $router->group(
         $router->get('/bracket-battle/battle-listing/{id}', 'BracketBattleController@battleListing');
         $router->post('/bracket-battle/update-round-battle', 'BracketBattleController@updateRoundBattle');
         $router->post('/bracket-battle/match-completion', 'BracketBattleController@matchCompletion');
+        $router->get('/bracket-battle/get-match-result-data/{roundId}', 'BracketBattleController@getMatchResultData');
+        $router->post('/bracket-battle/declarWinner', 'BracketBattleController@declarWinner');
     }
 );
 

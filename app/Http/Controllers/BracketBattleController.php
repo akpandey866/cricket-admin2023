@@ -161,13 +161,13 @@ class BracketBattleController extends Controller
             ->where('users.id', '<>', '')
             ->orWhereIn('users.id', [3039, 6139])
             ->select('user_teams.user_id', 'users.full_name as username')->get();
-        $getBracketStructure = BracketRound::where('id', $roundId)->first();
+        $getBracketRound = BracketRound::where('id', $roundId)->first();
         /*Get last round id for that winner users start here*/
         $getLastRound = 0;
         $winnerUserList = [];
         $checkLastRoundCompleted = 0;
-        if ($getBracketStructure->round > 1) {
-            $getLastRound = $getBracketStructure->round - 1;
+        if ($getBracketRound->round > 1) {
+            $getLastRound = $getBracketRound->round - 1;
             $getBracketRound = BracketRound::where('round', $getLastRound)->where('club_id', $this->userDetail->id)->value('id');
             $checkLastRoundCompleted = BracketMatch::where('round_id', $getBracketRound)->where('winner', '<>', '')->count();
             if ($checkLastRoundCompleted == 0) {
@@ -188,11 +188,11 @@ class BracketBattleController extends Controller
             $userList = $winnerUserList;
         }
         /*Get last round id for that winner users start here*/
-        $battles = $getBracketStructure->structure / 2;
+        $battles = $getBracketRound->structure / 2;
         $getBattles = [];
 
         /*Match Combinations start here*/
-        if ($getBracketStructure->round > 1) {
+        if ($getBracketRound->round > 1) {
             $getPlayingMatchCount = BracketMatch::where('round_id', $getBracketRound)->count();
             $battles = $getPlayingMatchCount / 2;
         }
@@ -387,5 +387,61 @@ class BracketBattleController extends Controller
             $data['message'] = "You have not save battle.Please save battle first.";
             return response()->json($data);
         }
+    }
+    function getMatchResultData(Request $request)
+    {
+        $getTieMatch = BracketMatch::leftJoin('users as FO', 'FO.id', '=', 'bracket_matches.first_opponent')
+            ->leftJoin('users as SO', 'SO.id', '=', 'bracket_matches.second_opponent')
+            ->where('round_id', $request->roundId)
+            ->where('winner', 'tie')
+            ->select('bracket_matches.*', 'FO.full_name as fo_full_name', 'SO.full_name as so_full_name')
+            ->get();
+
+        $bracketResult = BracketMatch::where('round_id', $request->roundId)->select('battle', 'round_id')->first();
+
+        // get Comnbination Match data
+        $getBracketRound = BracketRound::where('id', $request->roundId)->first();
+        if ($getBracketRound->round > 1) {
+            $getLastRound = $getBracketRound->round - 1;
+            $getBracketRound = BracketRound::where('round', $getLastRound)->where('club_id', $this->userDetail->id)->value('id');
+            $checkLastRoundCompleted = BracketMatch::where('round_id', $getBracketRound)->where('winner', '<>', '')->count();
+            if ($checkLastRoundCompleted == 0) {
+                $data['success'] = false;
+                $data['status'] = 500;
+                $data['message'] = "Last battle is in process.Pleas mark as complete last battle.";
+                return response()->json($data);
+            }
+            $combinationMatches = BracketMatch::where('bracket_matches.round_id', $getBracketRound)->get();
+            $roundId = $getBracketRound;
+        } else {
+            $roundId = $request->roundId;
+            $checkLastRoundCompleted = BracketMatch::where('round_id', $roundId)->count();
+            $combinationMatches = BracketMatch::where('bracket_matches.round_id', $roundId)->get();
+        }
+
+        // winner Data
+        $getWinners = BracketMatch::where('bracket_matches.round_id', $roundId)
+            ->leftJoin('users', 'users.id', '=', 'bracket_matches.winner')
+            ->where('bracket_matches.winner', "<>", '')
+            ->select('bracket_matches.battle', 'users.full_name')
+            ->get();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['tie_data'] = $getTieMatch;
+        $data['bracket_result'] = $bracketResult;
+        $data['combination_matches'] = $combinationMatches;
+        $data['winner_data'] = $getWinners;
+        $data['bracket_round_data'] = $getBracketRound;
+        return response()->json($data);
+    }
+    function declarWinner(Request $request)
+    {
+        $userId = $request->user_id;
+        $tableId = $request->table_id;
+        BracketMatch::where('id', $tableId)->update(['winner' => $userId]);
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Winner successfully declared.";
+        return response()->json($data);
     }
 }

@@ -70,7 +70,7 @@ class PlayerAvailabilityController extends Controller
 
     public function availabilityDetail(Request $request)
     {
-        $playerDetails =    Player::findOrFail($request->id);
+        $playerDetails =    Availability::findOrFail($request->id);
         $data['status'] = 200;
         $data['data'] = $playerDetails;
         return response()->json($data);
@@ -78,12 +78,26 @@ class PlayerAvailabilityController extends Controller
     public function editAvailability(Request $request)
     {
 
-        $obj =  Player::find($request->playerId);
-        $obj->full_name    =  $request->name;
-        $obj->save();
+        $playerList = $request->player;
+        foreach ($playerList as $key => $value) {
+            $objId = Availability::where(['club_id' => $this->userDetail->id, 'player' => $value])->value('id');
+            $obj =  Availability::find($objId);
+            $obj->player = $value;
+            $obj->date_from = $request->date_from;
+            $obj->date_till = $request->date_till;
+            $obj->reason = $request->reason;
+            $obj->save();
+        }
+
+        $result = Availability::leftJoin('players', 'players.id', '=', 'availabilities.player')
+            ->orderBy("availabilities.id", "desc")
+            ->where('availabilities.club', $this->userDetail->id)
+            ->select('availabilities.*', 'players.full_name as player_name')
+            ->paginate(10);
 
         $data['status'] = 200;
-        $data['message'] = "Player has been updated successfully.";
+        $data['data'] = $result;
+        $data['message'] = "Availability has been upated successfully.";
         return response()->json($data);
     }
     public function saveAvailability(Request $request)
@@ -123,5 +137,21 @@ class PlayerAvailabilityController extends Controller
             $data['message'] = "Availability has been upated successfully.";
             return response()->json($data);
         }
+    }
+    function editPlayerList(Request $request)
+    {
+        $selectedAvailabilityPlayer = Availability::where(['club_id', $this->userDetail->id])->whereNot('player', $request->player_id)->pluck('player')->all();
+        $query   = Player::where('club', $this->userDetail->id)->select('full_name', 'id')->whereNotIn('id', $selectedAvailabilityPlayer)->orderBy('full_name', 'ASC')->get();
+        $data = [];
+        $map = $query->map(function ($item) {
+            $data['value'] = $item->id;
+            $data['text'] = $item->full_name;
+            return $data;
+        });
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $map;
+        $data['message'] = "Data fetched sucessfully.";
+        return response()->json($data);
     }
 }
