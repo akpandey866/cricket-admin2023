@@ -59,13 +59,13 @@ class TeamController extends Controller
 
         try {
             $obj =  new Team;
-            $obj->name                         =  $request->name;
-            $obj->grade_name                 =  !empty($request->grade_name) ? $request->grade_name : 0;
-            $obj->team_category             =  !empty($request->team_category) ? $request->team_category : 0;
-            $obj->type                         =  !empty($request->type) ? $request->type : 0;
-            $obj->club                         =  !empty($request->club) ? $request->club : 0;
-            $obj->sponsor_link                 =  !empty($request->sponsor_link) ? $request->sponsor_link : '';
-            $obj->is_active                    =  1;
+            $obj->name  =  $request->name;
+            $obj->grade_name =  !empty($request->grade_name) ? $request->grade_name : 0;
+            $obj->team_category  =  !empty($request->team_category) ? $request->team_category : 0;
+            $obj->type =  !empty($request->type) ? $request->type : 0;
+            $obj->club  =  !empty($request->club) ? $request->club : 0;
+            $obj->sponsor_link  =  !empty($request->sponsor_link) ? $request->sponsor_link : '';
+            $obj->is_active =  1;
             $obj->save();
 
             $teamId = $obj->id;

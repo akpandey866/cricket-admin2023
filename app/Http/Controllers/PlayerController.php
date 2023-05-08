@@ -9,6 +9,7 @@ use App\Model\DropDown;
 use App\Model\User;
 use App\Model\MultiPlayer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Validator;
 
 class PlayerController extends Controller
@@ -70,6 +71,7 @@ class PlayerController extends Controller
         $obj =  new Player;
         $fullName = ucwords($request->first_name . " " . $request->last_name);
         $obj->full_name = $fullName;
+        $obj->club = $this->userDetail->id;
         $obj->first_name = $request->first_name;
         $obj->last_name = $request->last_name;
         $obj->position = $request->position;
@@ -78,10 +80,44 @@ class PlayerController extends Controller
         $obj->team_id = $request->team;
         $obj->bat_style = !empty($request->bat_style) ? $request->bat_style : 0;
         $obj->bowl_style = !empty($request->bowl_style) ? $request->bowl_style : 0;
-        $obj->save();
 
+        if (!empty($request->image) && $request->image != "undefined" && $request->image != "null") {
+            $extension = $request->image->getClientOriginalExtension();
+            $newFolder = strtoupper(date('M') . date('Y')) . '/';
+            $folderPath  =     base_path() . "/public/uploads/player/" . $newFolder;
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, $mode = 0777, true);
+            }
+            $userImageName = time() . '-player.' . $extension;
+            $image = $newFolder . $userImageName;
+            if ($request->image->move($folderPath, $userImageName)) {
+                $obj->image        =    $image;
+            }
+        } else {
+            $newFolder = strtoupper(date('M') . date('Y')) . '/';
+            $folderPath   =     base_path() . "/public/uploads/player/" . $newFolder;
+            $playerDummyImageRootpath = base_path() . "/public/img/Position1/";
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, $mode = 0777, true);
+            }
+            $image = "Position1a.png";
+            if ($request->position == 1) {
+                $image = "Position1a.png";
+            } elseif ($request->position == 2) {
+                $image = "Position2a.png";
+            } elseif ($request->position == 3) {
+                $image = "Position3a.png";
+            } elseif ($request->position == 4) {
+                $image = "Position4a.png";
+            }
+            if (copy($playerDummyImageRootpath . $image, $folderPath . $image)) {
+                $obj->image = $newFolder . $image;
+            }
+        }
+        $obj->save();
         $data['success'] = true;
         $data['status'] = 200;
+        $data['data'] = $obj;
         $data['message'] = "Player has been added successfully.";
         return response()->json($data);
     }
@@ -103,15 +139,72 @@ class PlayerController extends Controller
     public function playerDetail(Request $request)
     {
         $playerDetails =    Player::findOrFail($request->id);
+        $drop_down = new DropDown();
+        $teamList    =    Team::where('is_active', 1)->where('club', $this->userDetail->id)->select('name', 'id')->get();
+        $position    =    DropDown::where('dropdown_type', 'position')->where('is_active', 1)->orderBy('name', 'ASC')->select('name', 'id')->get();
+        $batStyle = $drop_down->get_master_list("bat-style");
+        $bowlStyle = $drop_down->get_master_list("bowl-style");
+        $svalue = PlayerPrice::where('club_id', $this->userDetail->id)->orderby('price', 'desc')->get();
+
         $data['status'] = 200;
-        $data['data'] = $playerDetails;
+        $data['player_data'] = $playerDetails;
+        $data['teamList'] = $teamList;
+        $data['position'] = $position;
+        $data['batStyle'] = $batStyle;
+        $data['bowlStyle'] = $bowlStyle;
+        $data['value'] = $svalue;
         return response()->json($data);
     }
     public function editPlayer(Request $request)
     {
 
         $obj =  Player::find($request->playerId);
-        $obj->full_name    =  $request->name;
+        $fullName = ucwords($request->first_name . " " . $request->last_name);
+        $obj->full_name = $fullName;
+        $obj->first_name = $request->first_name;
+        $obj->last_name = $request->last_name;
+        $obj->position = $request->position;
+        //$obj->svalue = $request->value;
+        $obj->team_id = $request->team;
+        $obj->bat_style = !empty($request->bat_style) ? $request->bat_style : 0;
+        $obj->bowl_style = !empty($request->bowl_style) ? $request->bowl_style : 0;
+
+        if (!empty($request->image) && $request->image != "undefined" && $request->image != "null") {
+
+            $extension = $request->image->getClientOriginalExtension();
+            $newFolder = strtoupper(date('M') . date('Y')) . '/';
+            $folderPath  =     base_path() . "/public/uploads/player/" . $newFolder;
+            @unlink(base_path() . "/public/uploads/player/" . $obj->image);
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, $mode = 0777, true);
+            }
+            $userImageName = time() . '-player.' . $extension;
+            $image = $newFolder . $userImageName;
+            if ($request->image->move($folderPath, $userImageName)) {
+                $obj->image        =    $image;
+            }
+        } else {
+            $newFolder = strtoupper(date('M') . date('Y')) . '/';
+            $folderPath   =     base_path() . "/public/uploads/player/" . $newFolder;
+            $playerDummyImageRootpath = base_path() . "/public/img/Position1/";
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, $mode = 0777, true);
+            }
+            $image = "Position1a.png";
+            if ($request->position == 1) {
+                $image = "Position1a.png";
+            } elseif ($request->position == 2) {
+                $image = "Position2a.png";
+            } elseif ($request->position == 3) {
+                $image = "Position3a.png";
+            } elseif ($request->position == 4) {
+                $image = "Position4a.png";
+            }
+            if (copy($playerDummyImageRootpath . $image, $folderPath . $image)) {
+                $obj->image = $newFolder . $image;
+            }
+        }
+
         $obj->save();
 
         $data['status'] = 200;
