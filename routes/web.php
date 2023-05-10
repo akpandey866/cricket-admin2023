@@ -135,6 +135,7 @@ $router->group(
 
         // Fixture Routing
         $router->get('/fixtures/listing', 'FixtureController@index');
+        $router->get('/fixtures/get-completed-fixture', 'FixtureController@getCompletedFixture');
         $router->post('/fixtures/save-fixture', 'FixtureController@saveFixture');
         $router->post('/fixtures/delete-fixture', 'FixtureController@deleteFixture');
         $router->post('/fixtures/edit-fixture', 'FixtureController@editFixture');
@@ -239,6 +240,7 @@ $router->group(
         $router->post('/bracket-battle/match-completion', 'BracketBattleController@matchCompletion');
         $router->get('/bracket-battle/get-match-result-data/{roundId}', 'BracketBattleController@getMatchResultData');
         $router->post('/bracket-battle/declarWinner', 'BracketBattleController@declarWinner');
+        $router->post('/bracket-battle/save-bracket-round', 'BracketBattleController@saveBracketRound');
     }
 );
 

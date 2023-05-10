@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 
 class FixtureController extends Controller
 {
+    private $userDetail = null;
     public function __construct()
     {
         $this->userDetail = auth('api')->user();
@@ -29,6 +30,68 @@ class FixtureController extends Controller
                 ->leftJoin('dropdown_managers as dropdown_managers3', 'fixtures.grade', '=', 'dropdown_managers3.id')
                 ->leftJoin('teams', 'fixtures.team', '=', 'teams.id')
                 ->where('fixtures.club', $this->userDetail->id)
+                ->where('fixtures.status', '!=', 3)
+                ->select('fixtures.*', 'clubs.club_name', 'dropdown_managers.name  as team_category', 'dropdown_managers1.name  as team_type', 'dropdown_managers2.name  as match_type', 'dropdown_managers1.name  as grade_name', 'teams.name  as team_name', 'grades.grade', 'user_teams.my_team_name');
+
+            if (!empty($request->team_name)) {
+                $DB->where("teams.name", 'like', '%' . $request->team_name . '%');
+            }
+            if (!empty($request->grade)) {
+                $DB->where("grades.grade", 'like', '%' . $request->grade . '%');
+            }
+            if (!empty($request->match_type)) {
+                $DB->where("dropdown_managers2.name", 'like', '%' . $request->match_type . '%');
+            }
+            if ($request->is_active == 0 || $request->is_active == 1) {
+                $DB->where("fixtures.is_active", 'like', '%' . $request->is_active . '%');
+            }
+            $sortBy = "fixtures.created_at";
+            $order = 'DESC';
+            if (!empty($request->sort)) {
+                $explodeOrderBy = explode("%", $request->sort);
+                $sortBy = current($explodeOrderBy);
+                $order = end($explodeOrderBy);
+            }
+            $pageLimit = 10;
+            if (!empty($request->limit)) {
+                $pageLimit = $request->limit;
+            }
+            $gradeList = Grade::where('club', $this->userDetail->id)
+                ->pluck('grade', 'id')
+                ->all();
+            $teamList = Team::where('club', $this->userDetail->id)
+                ->pluck('name', 'id')
+                ->all();
+            $result = $DB
+                ->orderBy($sortBy, $order)
+                ->paginate($pageLimit);
+        }
+        $drop_down = new DropDown();
+        $gradeList = $drop_down->get_master_list("gradename");
+        $matchTypeList = $drop_down->get_master_list("matchtype");
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $result;
+        $data['gradeList'] = $gradeList;
+        $data['matchTypeList'] = $matchTypeList;
+        $data['message'] = "Data fetched sucessfully.";
+        return response()->json($data);
+    }
+    public function getCompletedFixture(Request $request)
+    {
+
+        if ($request->limit != "undefined") {
+            $DB = Fixture::leftJoin('users', 'fixtures.opposition_club', '=', 'users.id')
+                ->leftJoin('user_teams as user_teams', 'fixtures.team', '=', 'user_teams.id')
+                ->leftJoin('users as clubs', 'fixtures.club', '=', 'clubs.id')
+                ->leftJoin('grades as grades', 'fixtures.grade', '=', 'grades.id')
+                ->leftJoin('dropdown_managers', 'fixtures.team_category', '=', 'dropdown_managers.id')
+                ->leftJoin('dropdown_managers as dropdown_managers1', 'fixtures.team_type', '=', 'dropdown_managers1.id')
+                ->leftJoin('dropdown_managers as dropdown_managers2', 'fixtures.match_type', '=', 'dropdown_managers2.id')
+                ->leftJoin('dropdown_managers as dropdown_managers3', 'fixtures.grade', '=', 'dropdown_managers3.id')
+                ->leftJoin('teams', 'fixtures.team', '=', 'teams.id')
+                ->where('fixtures.club', $this->userDetail->id)
+                ->where('fixtures.status', 3)
                 ->select('fixtures.*', 'clubs.club_name', 'dropdown_managers.name  as team_category', 'dropdown_managers1.name  as team_type', 'dropdown_managers2.name  as match_type', 'dropdown_managers1.name  as grade_name', 'teams.name  as team_name', 'grades.grade', 'user_teams.my_team_name');
 
             if (!empty($request->team_name)) {

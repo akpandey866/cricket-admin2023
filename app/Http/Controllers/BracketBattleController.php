@@ -11,6 +11,7 @@ use App\Model\UserTeamsGWExtraPTTrack;
 use App\Model\BracketMatch;
 use App\Model\TeamOfTheWeek;
 use App\Model\TeamPower;
+use App\Model\GameweekRound;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -25,57 +26,39 @@ class BracketBattleController extends Controller
     }
     public function index(Request $request)
     {
-        $temp_club_data = User::where('id', $this->userDetail->id)->first();
-        $lastGameweekArray = [];
-        $roundIds = [];
-        $lastGameweeks = BracketRound::where('club_id', $this->userDetail->id)->get();
-        if (!empty($lastGameweeks)) {
-            foreach ($lastGameweeks as $key => $value) {
-                $lastGameweekArray[] = $value->gameweeks;
-                $roundIds[$value->round] = $value->round;
-            }
-        }
-        $combineAllGW = implode(',', $lastGameweekArray);
-        $combineGWArray = explode(',', $combineAllGW);
-        $temp_lockout_start_date = Carbon::parse($temp_club_data->lockout_start_date)
-            ->startOfWeek();
-        $temp_lockout_end_date = Carbon::parse($temp_club_data->lockout_end_date)
-            ->endOfWeek();
-        // GW - GWP - GWR - Trades Made - Overall Pts - Overall Rank - Team Value - More
+        $query  = GameweekRound::where('gameweek_rounds.club_id', $this->userDetail->id)
+            ->select('round', 'id')->orderBy('round', 'ASC')
+            ->get();
 
-        $result = array();
-        $i = 1;
-        $allGameweeksNumber = [];
-        $newGW = [];
-        while (Carbon::parse($temp_lockout_start_date) < $temp_lockout_end_date) {
+        $data = [];
+        $map = $query->map(function ($item) {
 
-            $result[$i]['gw_start'] = $temp_lockout_start_date->copy()
-                ->startOfWeek();
-            $result[$i]['gw_end'] = $temp_lockout_start_date->copy()
-                ->endOfWeek();
-            $allGameweeksNumber[$i] = "GW# " . $i;
-            $newGW[$i] = $i;
-            $i++;
-            $temp_lockout_start_date->addWeek();
-        }
-
-        $newArray = array_diff($newGW, $combineGWArray);
-        if (!empty($newArray)) {
-            unset($allGameweeksNumber);
-            foreach ($newArray as $key => $value) {
-                $allGameweeksNumber[$value] = "GW# " . $value;
-            }
-        }
+            $data['value'] = $item->id;
+            $data['text'] = "RD# " . $item->round;
+            return $data;
+        });
 
         $getRound = BracketRound::where('club_id', $this->userDetail->id)->orderby('round', 'asc')->get();
         $bracketDetails = Bracket::where('club_id', $this->userDetail->id)->first();
 
-        $getRoundList = $this->getRoundUsingStructure($bracketDetails->structure);
+        $getRoundList = [];
+        $newRoundData = [];
+        if (!empty($bracketDetails)) {
+            $getRoundList = $this->getRoundUsingStructure($bracketDetails->structure);
 
-        $getRoundFromTable = BracketRound::where('club_id', $this->userDetail->id)->pluck('round', 'round')->all();
-        if (!empty($getRoundFromTable)) {
-            $getRoundList = array_diff_key($getRoundList, $getRoundFromTable);
+            $getRoundFromTable = BracketRound::where('club_id', $this->userDetail->id)->pluck('round', 'round')->all();
+            if (!empty($getRoundFromTable)) {
+                $getRoundList = array_diff_key($getRoundList, $getRoundFromTable);
+            }
+
+
+            foreach ($getRoundList as $key => $value) {
+                $newRoundData[$key]['id'] = $key;
+                $newRoundData[$key]['name'] = $value;
+            }
         }
+
+
         $roundConfigData = array(
             1 => 'Round 1',
             2 => 'Round 2',
@@ -95,13 +78,16 @@ class BracketBattleController extends Controller
         $data['status'] = 200;
         $data['data'] = $getRound;
         $data['bracket_details'] = $bracketDetails;
+        $data['round_list'] = array_values($newRoundData);
+        $data['gw_data'] = $map;
         return response()->json($data);
     }
     public function getRoundUsingStructure($value = null)
     {
+
         $roudList = [];
         if ($value == 8) {
-            $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3');
+            $roudList = [1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3'];
         }
         if ($value == 16) {
             $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4');
@@ -115,15 +101,15 @@ class BracketBattleController extends Controller
         if ($value == 128) {
             $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4', 5 => 'Round 5', 6 => 'Round 6', 7 => 'Round 7');
         }
-        if ($value == 256) {
-            $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4', 5 => 'Round 5', 6 => 'Round 6', 7 => 'Round 7', 8 => 'Round 8');
-        }
-        if ($value == 512) {
-            $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4', 5 => 'Round 5', 6 => 'Round 6', 7 => 'Round 7', 8 => 'Round 8', 9 => 'Round 9');
-        }
-        if ($value == 1024) {
-            $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4', 5 => 'Round 5', 6 => 'Round 6', 7 => 'Round 7', 8 => 'Round 8', 9 => 'Round 9', 9 => 'Round 10');
-        }
+        // if ($value == 256) {
+        //     $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4', 5 => 'Round 5', 6 => 'Round 6', 7 => 'Round 7', 8 => 'Round 8');
+        // }
+        // if ($value == 512) {
+        //     $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4', 5 => 'Round 5', 6 => 'Round 6', 7 => 'Round 7', 8 => 'Round 8', 9 => 'Round 9');
+        // }
+        // if ($value == 1024) {
+        //     $roudList = array(1 => 'Round 1', 2 => 'Round 2', 3 => 'Round 3', 4 => 'Round 4', 5 => 'Round 5', 6 => 'Round 6', 7 => 'Round 7', 8 => 'Round 8', 9 => 'Round 9', 9 => 'Round 10');
+        // }
         return $roudList;
     }
     function saveBracketBattle(Request $request)
@@ -442,6 +428,24 @@ class BracketBattleController extends Controller
         $data['success'] = true;
         $data['status'] = 200;
         $data['message'] = "Winner successfully declared.";
+        return response()->json($data);
+    }
+    function saveBracketRound(Request $request)
+    {
+        $gameweeks = implode(',', $request->gameweeks);
+        $obj =  new BracketRound;
+        $obj->gameweeks = $gameweeks;
+        $obj->round = $request->round;
+        $obj->structure = $request->structure;
+        $obj->club_id = $this->userDetail->id;
+        $obj->save();
+
+
+        $getRound = BracketRound::where('club_id', $this->userDetail->id)->orderby('round', 'asc')->get();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $getRound;
+        $data['message'] = "Round has been created successfully.";
         return response()->json($data);
     }
 }
