@@ -153,6 +153,10 @@ $router->group(
         // Scorecard Routing
         Route::get('/scorecard/{fixtureId}', 'ScoreCardController@scorecardDetail');
         Route::post('/save-scorecard', 'ScoreCardController@editFixtureScorcard');
+        Route::get('/scorecard/show-scorecard/{fixtureId}', 'ScoreCardController@showScorecard');
+        Route::get('/scorecard/show-squads/{fixtureId}', 'ScoreCardController@showSquad');
+        Route::get('/scorecard/manage-scorecards/{fixtureId}', 'ScoreCardController@manageScorecard');
+        Route::post('/scorecard/manage-scorecards', 'ScoreCardController@manageScorecard');
 
         // Power Control routing
         Route::get('/power-control', 'CommonController@powerControl');

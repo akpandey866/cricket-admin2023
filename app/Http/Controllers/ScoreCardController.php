@@ -14,8 +14,10 @@ use App\Model\Player;
 use App\Model\Team;
 use App\Model\TeamOfTheWeek;
 use App\Model\Grade;
+use App\Model\TeamPlayer;
 use App\Model\FeedbackFixturePoint;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 class ScoreCardController extends Controller
 {
@@ -415,135 +417,85 @@ class ScoreCardController extends Controller
         }
         return $getTotwBonus;
     }
-    public function showScorecard($fixture_id = null)
+    public function showScorecard(Request $request)
     {
-
-        $team_id = null;
-        $status = FixtureScorcard::where('fixture_id', $fixture_id)->orderBy('created_at', 'DESC')
-            ->value('status');
-        $teamPlayerCount = TeamPlayer::where('fixture_id', $fixture_id)->count();
-        $fixtureScorecards = FixtureScorcard::where('fixture_id', $fixture_id)->count();
-        if ($teamPlayerCount < 5) {
-            $needToAdd = (5 - $teamPlayerCount);
-            Session::flash('flash_notice', trans("Please add $needToAdd more player to add scorecard."));
-            return Redirect::to('admin/fixture');
-        }
-        if ($fixtureScorecards < 5) {
-            FixtureScorcard::where('fixture_id', $fixture_id)->delete();
-        }
-
-        $DB = FixtureScorcard::query();
-        $searchVariable = array();
-        $inputGet = Input::get();
-        /* seacrching on the basis of username and email */
-        if ((Input::get()) || isset($inputGet['display']) || isset($inputGet['page'])) {
-            $searchData = Input::get();
-            unset($searchData['display']);
-            unset($searchData['_token']);
-            if (isset($searchData['order'])) {
-
-                unset($searchData['order']);
-            }
-
-            if (isset($searchData['sortBy'])) {
-
-                unset($searchData['sortBy']);
-            }
-            if (isset($searchData['page'])) {
-
-                unset($searchData['page']);
-            }
-
-            $date_from = '';
-
-            $date_to = '';
-            foreach ($searchData as $fieldName => $fieldValue) {
-
-                if (!empty($fieldValue) || $fieldValue == 0) {
-
-                    $DB->where("fixture_scorecards.$fieldName", 'like', '%' . $fieldValue . '%');
-                }
-
-                $searchVariable = array_merge($searchVariable, array(
-                    $fieldName => $fieldValue,
-                ));
-            }
-        }
-
-        $sortBy = (Input::get('sortBy')) ? Input::get('sortBy') : 'fixture_scorecards.created_at';
-
-        $order = (Input::get('order')) ? Input::get('order') : 'DESC';
+        $fixture_id = $request->fixtureId;
         $fixtureData = Fixture::where('fixtures.id', $fixture_id)->leftJoin('grades', 'grades.id', '=', 'fixtures.grade')
             ->leftJoin('teams', 'teams.id', '=', 'fixtures.team')
             ->select('fixtures.*', 'grades.grade as grade', 'teams.name as team_name', 'teams.id as team_id')
             ->first();
-        $scoreData = FixtureScorcard::where(['fixture_id' => $fixture_id])->count();
-        $getTeamPlayer = TeamPlayer::where('fixture_id', $fixture_id)->select('player_id')
+
+        $result = FixtureScorcard::leftjoin('players', 'fixture_scorecards.player_id', '=', 'players.id')
+            ->select('fixture_scorecards.*', 'players.full_name as player_name', 'players.position as player_position')
+            ->where('fixture_scorecards.fixture_id', $fixture_id)
+            ->orderBy("fixture_scorecards.created_at", "DESC")
             ->get();
-        if ($scoreData == 0) {
-            if (!$getTeamPlayer->isEmpty()) {
-                if ($fixtureData->match_type == ONEDAYMATCH) {
-                    foreach ($getTeamPlayer as $key => $value) {
 
-                        $obj = new FixtureScorcard;
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $result;
+        $data['fixture_data'] = $fixtureData;
+        return response()->json($data);
+    }
+    function showSquad(Request $request)
+    {
+        $fixture_id = $request->fixtureId;
+        $fixtureDetails = Fixture::where('fixtures.id', $fixture_id)->leftJoin('teams', 'fixtures.team', '=', 'teams.id')
+            ->leftJoin('grades as grades', 'fixtures.grade', '=', 'grades.id')
+            ->leftJoin('dropdown_managers as dropdown_managers2', 'fixtures.match_type', '=', 'dropdown_managers2.id')
+            ->select('grades.grade', 'teams.name  as team_name', 'fixtures.start_date', 'fixtures.start_date', 'fixtures.end_date', 'dropdown_managers2.name  as match_type')
+            ->first();
 
-                        $obj->player_id = $value->player_id;
+        $result = TeamPlayer::leftJoin('players', 'team_players.player_id', '=', 'players.id')
+            ->select('team_players.*', 'players.full_name as player_name')
+            ->where('fixture_id', $fixture_id)->orderBy('team_players.created_at', 'DESC')->get();
 
-                        $obj->fixture_id = $fixture_id;
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $result;
+        $data['fixture_data'] = $fixtureDetails;
+        return response()->json($data);
+    }
+    function manageScorecard(Request $request)
+    {
+        $fixture_id = $request->fixtureId;
+        if ($request->isMethod('post')) {
+            $obj = Fixture::find($fixture_id);
+            $obj->potm_match_status = !empty($request->potm_match_status) ? $request->potm_match_status : '';
+            $obj->fall_of_wickets = !empty($request->fall_of_wickets) ? $request->fall_of_wickets : '';
+            $obj->match_report = !empty($request->match_report) ? $request->match_report : '';
+            $obj->scorcard_link_name = !empty($request->scorcard_link_name) ? $request->scorcard_link_name : '';
+            $obj->scorcard_link_url = !empty($request->scorcard_link_url) ? $request->scorcard_link_url : '';
 
-                        $obj->inning = 1;
-
-                        $obj->save();
+            /*Multipe scorecards upload option*/
+            if (!empty($request->player_card)) {
+                $imageName = [];
+                foreach ($request->player_card as $key => $value) {
+                    $extension = $value->getClientOriginalExtension();
+                    $newFolder = strtoupper(date('M') . date('Y')) . '/';
+                    $folderPath  =     base_path() . "/public/uploads/player_scorecard/" . $newFolder;
+                    if (!File::exists($folderPath)) {
+                        File::makeDirectory($folderPath, $mode = 0777, true);
                     }
-                } else {
-                    foreach ($getTeamPlayer as $key => $value) {
-
-                        $obj = new FixtureScorcard;
-
-                        $obj->player_id = $value->player_id;
-
-                        $obj->fixture_id = $fixture_id;
-
-                        $obj->inning = 1;
-
-                        $obj->save();
+                    $userImageName = time() . $key . '-player-scorecard.' . $extension;
+                    $image = $newFolder . $userImageName;
+                    // if ($key == 0) {
+                    if ($value->move($folderPath . "/", $userImageName)) {
+                        $imageName[] = $image;
                     }
-                    foreach ($getTeamPlayer as $key => $value) {
-
-                        $obj = new FixtureScorcard;
-
-                        $obj->player_id = $value->player_id;
-
-                        $obj->fixture_id = $fixture_id;
-
-                        $obj->inning = 2;
-
-                        $obj->save();
-                    }
+                    // }
+                    $obj->player_card = implode(",", $imageName);
                 }
             }
-        } else {
+            $obj->save();
         }
-        $result = $DB->leftjoin('players', 'fixture_scorecards.player_id', '=', 'players.id')
-            ->select('fixture_scorecards.*', 'players.full_name as player_name', 'players.position as player_position')
-
-            ->where('fixture_scorecards.fixture_id', $fixture_id)
-            ->orderBy($sortBy, $order)
-            ->paginate(40);
-        $playerScorcards = FixtureScorcard::where('fixture_id', $fixture_id)->where('player_card', '!=', '')
-            ->value('player_card');
-        $complete_string = Input::query();
-
-        unset($complete_string["sortBy"]);
-
-        unset($complete_string["order"]);
-
-        $query_string = http_build_query($complete_string);
-
-        $result->appends(Input::all())
-            ->render();
-        $playerImages = FixtureScorcard::where('fixture_id', $fixture_id)->where('player_card', '!=', '')
+        $fixtureData = Fixture::where('fixtures.id', $fixture_id)->leftJoin('grades', 'grades.id', '=', 'fixtures.grade')
+            ->leftJoin('teams', 'teams.id', '=', 'fixtures.team')
+            ->select('fixtures.*', 'grades.grade as grade', 'teams.name as team_name', 'teams.id as team_id')
             ->first();
-        return View::make('admin.fixture.show_scorecard', compact('result', 'searchVariable', 'sortBy', 'order', 'query_string', 'fixture_id', 'team_id', 'fixtureData', 'status', 'playerImages', 'playerScorcards'));
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $fixtureData;
+        return response()->json($data);
     }
 }// end ClubController class
