@@ -110,6 +110,8 @@ $router->group(
         $router->post('/players/save-player', 'PlayerController@savePlayer');
         $router->post('players/save-player-structure', 'PlayerController@savePlayeStructure');
         $router->get('players/get-player-structure-info', 'PlayerController@getPlayerStructureInfo');
+        $router->get('players/player-profile-claim-listing', 'PlayerController@playerProfileClaimListing');
+        $router->post('players/verify-player-request', 'PlayerController@verifyPlayerRequest');
 
         // Fantasy Values(Player Price) Spot Routing
         $router->get('/players/fantasy-values', 'PlayerController@fantasyValue');
@@ -131,6 +133,7 @@ $router->group(
         $router->post('/teams/save-team', 'TeamController@saveTeam');
         $router->post('/teams/edit-team', 'TeamController@editTeam');
         $router->post('/teams/delete-team', 'TeamController@deleteTeam');
+        $router->get('/teams/get-add-team-data', 'TeamController@getAddTeamData');
         $router->get('/teams/team-list-by-grade/{grade_id}', 'TeamController@getTeamListByGrade');
 
         // Fixture Routing
@@ -141,6 +144,12 @@ $router->group(
         $router->post('/fixtures/edit-fixture', 'FixtureController@editFixture');
         $router->get('/fixtures/fixture-details/{id}', 'FixtureController@FixtureDetail');
         $router->get('/fixtures/get-match-list-types', 'FixtureController@getMatchListType');
+        $router->post('/fixtures/update-scorecard-status', 'FixtureController@updateScorecardStatus');
+        $router->get('/fixtures/get-activated-display', 'FixtureController@getActivatedDisplay');
+        $router->post('/fixtures/changeDisplayStatus', 'FixtureController@changeDisplayStatus');
+        $router->get('/fixtures/get-feedback-manager-list/{fixtureId}', 'FixtureController@getFeedbackManagerList');
+        $router->post('/fixtures/save-assigned-feedback-manager', 'FixtureController@saveAssignedFeedbackManager');
+        $router->post('/fixtures/delete-assigned-feedback-manager', 'FixtureController@deleteAssignedFeedbackManager');
 
         // Team Player Routing is here
         Route::get('/team-player/{fixture_id}', array('as' => 'TeamPlayer.index', 'uses' => 'TeamPlayerController@index'));
@@ -157,6 +166,7 @@ $router->group(
         Route::get('/scorecard/show-squads/{fixtureId}', 'ScoreCardController@showSquad');
         Route::get('/scorecard/manage-scorecards/{fixtureId}', 'ScoreCardController@manageScorecard');
         Route::post('/scorecard/manage-scorecards', 'ScoreCardController@manageScorecard');
+        Route::post('/scorecard/get-saved-scorecard-data', 'ScoreCardController@getSavedScorecardModal');
 
         // Power Control routing
         Route::get('/power-control', 'CommonController@powerControl');
@@ -166,6 +176,7 @@ $router->group(
         // Verify User
         Route::get('/common/verify-users', 'CommonController@verifyUsers');
         Route::post('/common/save-verify-user', 'CommonController@saveVerifyUser');
+        Route::post('/common/delete-verify-user', 'CommonController@deleteVerifyUser');
 
         // Game Structure & Salary Cap
         Route::post('/common/edit-game-structure', 'CommonController@editGameStructure');
@@ -192,6 +203,8 @@ $router->group(
         $router->post('/sponsors/delete-sponsor', 'SponsorController@deleteSponsor');
         $router->post('/sponsors/edit-sponsor', 'SponsorController@editSponsor');
         $router->get('/sponsors/sponsor-details/{id}', 'SponsorController@sponsorDetail');
+        $router->get('/sponsor/update-featured/{id}/{status}', 'SponsorController@updateFeatured');
+        $router->get('/sponsor/update-status/{id}/{status}', 'SponsorController@updateStatus');
 
         // User Routing
         $router->get('/users/listing', 'UserController@index');
@@ -199,6 +212,8 @@ $router->group(
         $router->post('/users/delete-user', 'UserController@deleteGrade');
         $router->post('/users/edit-user', 'UserController@editUser');
         $router->get('/users/user-details/{id}', 'UserController@userDetail');
+        $router->get('/users/update-paid-status/{role_id}/{userId}/{userStatus}', 'UserController@updatePaidStatus');
+        $router->get('/users/paid-user-listing', 'UserController@paidUserListing');
 
         // Sponsors Routing
         $router->get('/game-notifications/listing', 'GameNotificationController@index');
@@ -245,6 +260,15 @@ $router->group(
         $router->get('/bracket-battle/get-match-result-data/{roundId}', 'BracketBattleController@getMatchResultData');
         $router->post('/bracket-battle/declarWinner', 'BracketBattleController@declarWinner');
         $router->post('/bracket-battle/save-bracket-round', 'BracketBattleController@saveBracketRound');
+
+        // Prizes Routing
+        $router->get('/prizes/listing', 'GamePrizeController@index');
+        $router->post('/prizes/save-prize', 'GamePrizeController@savePrize');
+        $router->post('/prizes/delete-prize', 'GamePrizeController@deletePrize');
+        $router->post('/prizes/edit-prize', 'GamePrizeController@editPrize');
+        $router->get('/prizes/prize-details/{id}', 'GamePrizeController@prizeDetail');
+        $router->get('/prizes/update-featured/{id}/{status}', 'GamePrizeController@updateFeatured');
+        $router->get('/prizes/update-status/{id}/{status}', 'GamePrizeController@updateStatus');
     }
 );
 

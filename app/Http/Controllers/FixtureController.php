@@ -6,6 +6,8 @@ use App\Model\Fixture;
 use App\Model\Grade;
 use App\Model\DropDown;
 use App\Model\Team;
+use App\Model\FeedbackCochAccess;
+use App\Model\FeedbackFixtureCoch;
 use Illuminate\Http\Request;
 
 
@@ -75,6 +77,27 @@ class FixtureController extends Controller
         $data['gradeList'] = $gradeList;
         $data['matchTypeList'] = $matchTypeList;
         $data['message'] = "Data fetched sucessfully.";
+        return response()->json($data);
+    }
+    function getActivatedDisplay()
+    {
+        $activatedFixtureIds = Fixture::where('fixtures.club', $this->userDetail->id)->where('fixtures.status', '!=', 3)->where('display', 1)->pluck('id')->toArray();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] =  $activatedFixtureIds;
+        return response()->json($data);
+    }
+    function changeDisplayStatus(Request $request)
+    {
+        $checkStatus = Fixture::where('id', '=', $request->fixtureId)->value('display');
+        $displayStatus = 1;
+        if ($checkStatus == 1) {
+            $displayStatus = 2;
+        }
+        Fixture::where('id', '=', $request->fixtureId)->update(['display' => $displayStatus]);
+        $data['success'] = true;
+        $data['message'] = 'Display Status updated successfully.';
+        $data['status'] = 200;
         return response()->json($data);
     }
     public function getCompletedFixture(Request $request)
@@ -210,6 +233,82 @@ class FixtureController extends Controller
         $matchTypeList = $drop_down->get_master_list("matchtype");
         $data['status'] = 200;
         $data['data'] = $matchTypeList;
+        return response()->json($data);
+    }
+    function updateScorecardStatus(Request $request)
+    {
+        $fixtureId = $request->fixtureId;
+        $status = $request->status;
+        Fixture::where('id', '=', $fixtureId)->update(array('status' => $status));
+        $msg = "Display status changed successfully.";
+        $data['status'] = 200;
+        $data['message'] = $msg;
+        return response()->json($data);
+    }
+
+    function getFeedbackManagerList(Request $request)
+    {
+        $fixtureId = $request->fixtureId;
+
+        $userList = FeedbackCochAccess::leftJoin('users', 'users.id', '=', 'feedback_coch_access.user_id')->where('club_id', $this->userDetail->id)
+            ->where('users.id', '!=', $this->userDetail->id)
+            ->orderBy('users.full_name', 'ASC')
+            ->select('users.full_name', 'feedback_coch_access.user_id')
+            ->get();
+
+        $coachListing = FeedbackFixtureCoch::leftJoin('users', 'users.id', '=', 'feedback_fixture_coch.user_id')
+            ->where('feedback_fixture_coch.club_id', $this->userDetail->id)
+            ->where('fixture_id', $fixtureId)
+            ->select('feedback_fixture_coch.*', 'users.full_name as username')
+            ->get();
+
+        $data['status'] = 200;
+        $data['data'] = $userList;
+        $data['coach_listing'] = $coachListing;
+        return response()->json($data);
+    }
+
+    function saveAssignedFeedbackManager(Request $request)
+    {
+
+        $checkUserId = FeedbackFixtureCoch::where(['fixture_id' => $request->fixtureId, 'user_id' => $request->user_id])->exists();
+        if ($checkUserId) {
+            $data['status'] = 401;
+            $data['message'] = "User already exists in list.";
+            return response()->json($data);
+        }
+        $obj = new FeedbackFixtureCoch();
+        $obj->fixture_id = $request->fixtureId;
+        $obj->user_id = $request->user_id;
+        $obj->club_id = $this->userDetail->id;
+        $obj->save();
+
+
+        $coachListing = FeedbackFixtureCoch::leftJoin('users', 'users.id', '=', 'feedback_fixture_coch.user_id')
+            ->where('feedback_fixture_coch.club_id', $this->userDetail->id)
+            ->where('fixture_id', $request->fixtureId)
+            ->select('feedback_fixture_coch.*', 'users.full_name as username')
+            ->get();
+
+        $data['status'] = 200;
+        $data['message'] = "Feedback Manager added successfully.";
+        $data['coach_listing'] = $coachListing;
+        return response()->json($data);
+    }
+
+    function deleteAssignedFeedbackManager(Request $request)
+    {
+
+        FeedbackFixtureCoch::where('id', $request->id)->delete();
+        $coachListing = FeedbackFixtureCoch::leftJoin('users', 'users.id', '=', 'feedback_fixture_coch.user_id')
+            ->where('feedback_fixture_coch.club_id', $this->userDetail->id)
+            ->where('fixture_id', $request->fixtureId)
+            ->select('feedback_fixture_coch.*', 'users.full_name as username')
+            ->get();
+
+        $data['status'] = 200;
+        $data['message'] = "Assigned Feedback manager deleted successfully.";
+        $data['coach_listing'] = $coachListing;
         return response()->json($data);
     }
 }

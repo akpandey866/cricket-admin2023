@@ -448,4 +448,16 @@ class BracketBattleController extends Controller
         $data['message'] = "Round has been created successfully.";
         return response()->json($data);
     }
+    function bracketRoundPoint()
+    {
+        $userList = UserTeams::leftJoin('users', 'users.id', '=', 'user_teams.user_id')
+            ->where('user_teams.club_id', $this->userDetail->id)
+            ->select('user_teams.*', 'users.full_name as username')
+            ->get();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $userList;
+        $data['message'] = "Round has been created successfully.";
+        return response()->json($data);
+    }
 }

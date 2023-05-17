@@ -137,4 +137,38 @@ class SponsorController extends Controller
         $data['message'] = "Sponsor has been updated successfully.";
         return response()->json($data);
     }
+    function updateFeatured($id = 0, $status = 0)
+    {
+        $checkFeaturedExists = Sponsor::where(['user_id' => $this->userDetail->id, 'is_featured' => 1])->exists();
+        if (($checkFeaturedExists) && ($status == 1)) {
+            $data['status'] = 401;
+            $data['message'] = "Please remove the existing 'Featured' tag to mark another sponsor as 'Featured'.";
+            return response()->json($data);
+        }
+        Sponsor::where('id', '=', $id)->update(array('is_featured' => $status));
+        $msg = "";
+        if ($status  == 1) {
+            $msg = "Marked as Featured.";
+        } else {
+            $msg = "Featured mark removed.";
+        }
+
+        $data['status'] = 200;
+        $data['message'] = $msg;
+        return response()->json($data);
+    }
+
+    function updateStatus($id = 0, $status = 0)
+    {
+        Sponsor::where('id', '=', $id)->update(array('is_active' => $status));
+        $msg = "";
+        if ($status  == 1) {
+            $msg = "Sponsor has been activated.";
+        } else {
+            $msg = "Sponsor has been deactivated.";
+        }
+        $data['status'] = 200;
+        $data['message'] = $msg;
+        return response()->json($data);
+    }
 }

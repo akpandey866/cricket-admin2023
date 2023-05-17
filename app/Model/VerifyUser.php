@@ -3,7 +3,6 @@
 namespace App\Model;
 
 use Illuminate\Database\Eloquent\Model;
-use Eloquent, DB, App;
 
 class VerifyUser extends Model
 {
@@ -12,6 +11,8 @@ class VerifyUser extends Model
 
     public function playerData()
     {
-        return $this->belongsTo('App\Model\Player', 'player_id');
+        return $this->belongsTo('App\Model\Player', 'player_id')
+            ->leftJoin('dropdown_managers', 'dropdown_managers.id', '=', 'players.position')
+            ->select('dropdown_managers.name', 'players.svalue');
     }
 }

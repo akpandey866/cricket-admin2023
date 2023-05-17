@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Model\Team;
+use App\Model\Grade;
+use App\Model\DropDown;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 
 class TeamController extends Controller
@@ -57,42 +60,53 @@ class TeamController extends Controller
     public function saveTeam(Request $request)
     {
 
-        try {
-            $obj =  new Team;
-            $obj->name  =  $request->name;
-            $obj->grade_name =  !empty($request->grade_name) ? $request->grade_name : 0;
-            $obj->team_category  =  !empty($request->team_category) ? $request->team_category : 0;
-            $obj->type =  !empty($request->type) ? $request->type : 0;
-            $obj->club  =  !empty($request->club) ? $request->club : 0;
-            $obj->sponsor_link  =  !empty($request->sponsor_link) ? $request->sponsor_link : '';
-            $obj->is_active =  1;
-            $obj->save();
 
-            $teamId = $obj->id;
-            Team::where('id', '=', $teamId)->update(array('sn' => 'T' . sprintf("%05d", ($teamId))));
-
-            $data['success'] = true;
-            $data['status'] = 200;
-            $data['message'] = "Grade has been added successfully.";
-            return response()->json($data);
-        } catch (\Exception $e) {
-            $data['success'] = false;
-            $data['status'] = 501;
-            $data['message'] = $e->getMessage();
+        $obj =  new Team;
+        $obj->name  =  $request->name;
+        $obj->grade_name =  !empty($request->grade_name) ? $request->grade_name : 0;
+        $obj->team_category  =  !empty($request->team_category) ? $request->team_category : 0;
+        $obj->type =  !empty($request->team_type) ? $request->team_type : 0;
+        $obj->club  =  $this->userDetail->id;
+        $obj->sponsor_link  =  !empty($request->sponsor_link) ? $request->sponsor_link : '';
+        if (!empty($request->image) && $request->image != "undefined" && $request->image != "null") {
+            $extension             =    $request->image->getClientOriginalExtension();
+            $newFolder             =     strtoupper(date('M') . date('Y')) . '/';
+            $folderPath            =     base_path() . "/public/uploads/team_sponsor/" . $newFolder;
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, $mode = 0777, true);
+            }
+            $userImageName = time() . '-team-sponsor.' . $extension;
+            $image = $newFolder . $userImageName;
+            if ($request->image->move($folderPath, $userImageName)) {
+                $obj->image        =    $image;
+            }
         }
+        $obj->is_active =  1;
+        $obj->save();
+
+
+
+        $teamId = $obj->id;
+        Team::where('id', '=', $teamId)->update(array('sn' => 'T' . sprintf("%05d", ($teamId))));
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $obj;
+        $data['message'] = "Team has been added successfully.";
+        return response()->json($data);
     }
     public function deleteTeam(Request $request)
     {
-        try {
-            Team::where('id', $request->id)->delete();
-            $data['status'] = 200;
-            $data['message'] = "Team has been deleted successfully.";
-            return response()->json($data);
-        } catch (\Exception $e) {
-            $data['success'] = false;
-            $data['status'] = 501;
-            $data['message'] = $e->getMessage();
-        }
+        Team::where('id', $request->id)->delete();
+        $result =     Team::leftJoin('users', 'teams.club', '=', 'users.id')
+            ->leftJoin('dropdown_managers', 'teams.team_category', '=', 'dropdown_managers.id')
+            ->select('teams.*', 'teams.name as team_name', 'users.club_name', 'dropdown_managers.name')
+            ->where('teams.club', $this->userDetail->id)
+            ->orderBy("teams." . "created_at", "desc")
+            ->paginate(10);
+        $data['status'] = 200;
+        $data['data'] = $result;
+        $data['message'] = "Team has been deleted successfully.";
+        return response()->json($data);
     }
 
     public function teamDetail(Request $request)
@@ -106,10 +120,29 @@ class TeamController extends Controller
     {
 
         $obj =  Team::find($request->teamId);
-        $obj->name    =  $request->name;
+        $obj->name  =  $request->name;
+        $obj->grade_name =  !empty($request->grade_name) ? $request->grade_name : 0;
+        $obj->team_category  =  !empty($request->team_category) ? $request->team_category : 0;
+        $obj->type =  !empty($request->team_type) ? $request->team_type : 0;
+        $obj->sponsor_link  =  !empty($request->sponsor_link) ? $request->sponsor_link : '';
+        if (!empty($request->image) && $request->image != "undefined" && $request->image != "null") {
+            $extension             =    $request->image->getClientOriginalExtension();
+            $newFolder             =     strtoupper(date('M') . date('Y')) . '/';
+            @unlink(base_path() . "/public/uploads/team_sponsor/" . $obj->image);
+            $folderPath            =     base_path() . "/public/uploads/team_sponsor/" . $newFolder;
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, $mode = 0777, true);
+            }
+            $userImageName = time() . '-team-sponsor.' . $extension;
+            $image = $newFolder . $userImageName;
+            if ($request->image->move($folderPath, $userImageName)) {
+                $obj->image        =    $image;
+            }
+        }
         $obj->save();
 
         $data['status'] = 200;
+        $data['data'] = $obj;
         $data['message'] = "Team has been updated successfully.";
         return response()->json($data);
     }
@@ -119,6 +152,17 @@ class TeamController extends Controller
         $teamLists = Team::where('grade_name', $request->grade_id)->select('name', 'id')->get();
         $data['status'] = 200;
         $data['data'] = $teamLists;
+        return response()->json($data);
+    }
+    function getAddTeamData()
+    {
+
+        $gradeList = Grade::where('club', $this->userDetail->id)->select('grade', 'id')->get();
+        $drop_down  =    new DropDown();
+        $teamCategory =    $drop_down->get_master_list("teamcategory");
+        $data['status'] = 200;
+        $data['grade_list'] = $gradeList;
+        $data['team_category'] = $teamCategory;
         return response()->json($data);
     }
 }

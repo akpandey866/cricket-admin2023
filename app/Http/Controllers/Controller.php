@@ -28,4 +28,39 @@ class Controller extends BaseController
             File::delete($path);
         }
     }
+
+    public function sendMail($to, $fullName, $subject, $messageBody, $from = '', $files = false, $path = '', $attachmentName = '')
+    {
+        $data                =    array();
+        $data['to']            =    $to;
+        $data['from']        =    (!empty($from) ? $from : Config::get("Site.email"));
+        $data['fullName']    =    $fullName;
+        $data['subject']    =    $subject;
+        $data['filepath']    =    $path;
+        $data['attachmentName']    =    $attachmentName;
+        if ($files === false) {
+            Mail::send('emails.template', array('messageBody' => $messageBody), function ($message) use ($data) {
+                $message->to($data['to'], $data['fullName'])->from($data['from'])->subject($data['subject']);
+            });
+        } else {
+            if ($attachmentName != '') {
+                Mail::send('emails.template', array('messageBody' => $messageBody), function ($message) use ($data) {
+                    $message->to($data['to'], $data['fullName'])->from($data['from'])->subject($data['subject'])->attach($data['filepath'], array('as' => $data['attachmentName']));
+                });
+            } else {
+                Mail::send('emails.template', array('messageBody' => $messageBody), function ($message) use ($data) {
+                    $message->to($data['to'], $data['fullName'])->from($data['from'])->subject($data['subject'])->attach($data['filepath']);
+                });
+            }
+        }
+        DB::table('email_logs')->insert(
+            array(
+                'email_to'     => $data['to'],
+                'email_from' => $data['from'],
+                'subject'     => $data['subject'],
+                'message'     =>    $messageBody,
+                'created_at' => DB::raw('NOW()')
+            )
+        );
+    }
 }

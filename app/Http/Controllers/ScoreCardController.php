@@ -498,4 +498,40 @@ class ScoreCardController extends Controller
         $data['data'] = $fixtureData;
         return response()->json($data);
     }
+
+    function getSavedScorecardModal(Request $request)
+    {
+        $fixture_id = $request->fixtureId;
+        $result = FixtureScorcard::where('fixture_id', $fixture_id)->leftjoin('players', 'fixture_scorecards.player_id', '=', 'players.id')
+            ->where('fixture_scorecards.fantasy_points', '<>', "")
+            ->select('fixture_scorecards.fantasy_points as fantasy_points', 'players.full_name as player_name', 'players.position as player_position')
+            ->orderBy('fantasy_points', 'desc')
+            ->get();
+
+        $data = [];
+        $map = $result->map(function ($item) {
+
+            $data['player_name'] = $item->player_name;
+            if ($item->player_position == 1) {
+                $data['position'] = "Batsman";
+            }
+            if ($item->player_position == 2) {
+                $data['position'] = "Bowler";
+            }
+            if ($item->player_position == 3) {
+                $data['position'] = "All Rounder";
+            }
+            if ($item->player_position == 4) {
+                $data['position'] = "Wicket Keeper";
+            }
+            $data['fantasy_points'] = $item->fantasy_points;
+            return $data;
+        });
+
+
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $map;
+        return response()->json($data);
+    }
 }// end ClubController class

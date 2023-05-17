@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Model\User;
 use App\Model\UserTeams;
-use App\Model\DropDown;
-use App\Model\GamePoint;
+use App\Model\EmailAction;
+use App\Model\EmailTemplate;
+use App\Model\PaidUser;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -157,6 +159,60 @@ class UserController extends Controller
         $data['status'] = 200;
         $data['data'] = $result;
         $data['message'] = "User has been updated successfully.";
+        return response()->json($data);
+    }
+    public function sendCredential(Request $request)
+    {
+        $id = $request->id;
+        $obj = User::find($id);
+        $settingsEmail = "info@myclubtap.com";
+        //$full_name		= 	$obj->full_name;
+        $username = $obj->username;
+        $email = $obj->email;
+        $password = substr(uniqid(rand(10, 1000), false), rand(0, 10), 8);
+        $obj->password = Hash::make($password);
+        $obj->save();
+        $route_url = URL::to('/');
+        $click_link = $route_url;
+        $emailActions = EmailAction::where('action', '=', 'send_login_credentials')->get()->toArray();
+        $emailTemplates = EmailTemplate::where('action', '=', 'send_login_credentials')->get(array('name', 'subject', 'action', 'body'))->toArray();
+        $cons = explode(',', $emailActions[0]['options']);
+        $constants = array();
+        foreach ($cons as $key => $val) {
+            $constants[] = '{' . $val . '}';
+        }
+        $subject = $emailTemplates[0]['subject'];
+        $rep_Array = array($username, $username, $password, $click_link, $route_url);
+        $messageBody = str_replace($constants, $rep_Array, $emailTemplates[0]['body']);
+        $mail = $this->sendMail($email, $username, $subject, $messageBody, $settingsEmail);
+        Session::flash('flash_notice', trans("Login credientials send successfully"));
+        return Redirect::back();
+    }
+
+    public function updatePaidStatus($roleId = 0, $userId = 0, $userStatus = 0)
+    {
+        if ($userStatus == 0) {
+            $statusMessage = trans("Member marked as Unpaid");
+        } else {
+            $statusMessage = trans("Member marked as Paid");
+        }
+        User::where('id', $userId)->update(array('is_fund_paid' => $userStatus));
+        $paidUser = PaidUser::firstOrNew(['user_id' => $userId, 'club_id' => $this->userDetail->id]);
+        $paidUser->user_id = $userId;
+        $paidUser->club_id = $this->userDetail->id;
+        $paidUser->is_fund_paid = $userStatus;
+        $paidUser->request = ($userStatus == 0) ? 0 : 2;
+        $paidUser->save();
+
+        $data['status'] = 200;
+        $data['message'] = $statusMessage;
+        return response()->json($data);
+    }
+    function paidUserListing(Request $request)
+    {
+        $paidUser = PaidUser::where(['club_id' => $this->userDetail->id, "request" => 1])->with('userData:id,full_name')->get();
+        $data['status'] = 200;
+        $data['data'] = $paidUser;
         return response()->json($data);
     }
 }

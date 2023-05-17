@@ -283,17 +283,18 @@ class CommonController extends Controller
         $obj->is_paid = 1;
         $obj->club_id = $this->userDetail->id;
 
-        if (!empty($request->logo)  && $request->logo != "undefined" && $request->logo != "null") {
-            $extension             =    $request->logo->getClientOriginalExtension();
+        if (!empty($request->image) && $request->image != "undefined" && $request->image != "null") {
+            $extension             =    $request->image->getClientOriginalExtension();
             $newFolder             =     strtoupper(date('M') . date('Y')) . '/';
+            @unlink(base_path() . "/public/uploads/branding/" . $obj->logo);
             $folderPath            =     base_path() . "/public/uploads/branding/" . $newFolder;
             if (!File::exists($folderPath)) {
                 File::makeDirectory($folderPath, $mode = 0777, true);
             }
             $userImageName = time() . '-branding-main.' . $extension;
             $image = $newFolder . $userImageName;
-            if ($request->logo->move($folderPath, $userImageName)) {
-                $obj->image        =    $image;
+            if ($request->image->move($folderPath, $userImageName)) {
+                $obj->logo        =    $image;
             }
         }
         $obj->save();
@@ -404,7 +405,7 @@ class CommonController extends Controller
         $data['success'] = true;
         $data['status'] = 200;
         $data['data'] = $result;
-        $data['message'] = "User verified successfully.";
+        $data['message'] = "Member verified successfully.";
         return response()->json($data);
     }
     function totwListing(Request $request)
@@ -503,7 +504,11 @@ class CommonController extends Controller
         $msg = "";
         if ($request->type == 1) {
             User::where('id', $this->userDetail->id)->update(['multi_players_id' => $request->structure]);
-            MultiPlayerSalary::where(['club_id' => $this->userDetail->id])->update(['multi_player_id' => $request->structure]);
+            $newUser = MultiPlayerSalary::updateOrCreate([
+                'club_id'   => $this->userDetail->id,
+            ], [
+                'multi_player_id' => $request->structure,
+            ]);
             $msg = "Game Structure has been updated successfully.";
         }
         if ($request->type == 2) {
@@ -534,6 +539,14 @@ class CommonController extends Controller
         $data['status'] = 200;
         $data['game_spot'] = $gameSpot;
         $data['game_structure'] = $getStucture;
+        return response()->json($data);
+    }
+    public function deleteVerifyUser(Request $request)
+    {
+        VerifyUser::where('id', $request->id)->delete();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Verified Member deleted.";
         return response()->json($data);
     }
 }

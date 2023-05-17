@@ -1,13 +1,11 @@
 <?php
-namespace App\Model; 
 
-use Illuminate\Auth\Authenticatable;
+namespace App\Model;
+
 use Illuminate\Database\Eloquent\Model;
-use Eloquent,DB,App;
 
-class VerifyPlayer extends Eloquent 
+class VerifyPlayer extends Model
 {
 
-	protected $table = 'verify_players';
-    
+    protected $table = 'verify_players';
 }

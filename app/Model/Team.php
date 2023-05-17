@@ -2,8 +2,6 @@
 
 namespace App\Model;
 
-use Illuminate\Auth\Authenticatable;
-use Eloquent, DB, App;
 use Illuminate\Database\Eloquent\Model;
 
 class Team extends Model

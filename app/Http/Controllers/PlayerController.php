@@ -8,6 +8,7 @@ use App\Model\Team;
 use App\Model\DropDown;
 use App\Model\User;
 use App\Model\MultiPlayer;
+use App\Model\VerifyUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Validator;
@@ -366,6 +367,26 @@ class PlayerController extends Controller
         $data['success'] = true;
         $data['status'] = 200;
         $data['data'] = $details;
+        return response()->json($data);
+    }
+    function playerProfileClaimListing(Request $request)
+    {
+        $verifyPlayer = VerifyUser::leftJoin('users', 'users.id', '=', 'verify_users.user_id')
+            ->where(['club_id' => $this->userDetail->id, "verify_users.is_approved" => 3])
+            ->with('playerData:players.id,full_name,dropdown_managers.name as position_name,svalue')
+            ->select('verify_users.*', 'users.full_name as user_full_name')
+            ->get();
+        $data['status'] = 200;
+        $data['data'] = $verifyPlayer;
+        return response()->json($data);
+    }
+    function verifyPlayerRequest(Request $request)
+    {
+        $id = $request->id;
+        $aproveStatus = $request->status;
+        VerifyUser::where('id', '=', $id)->update(array('is_approved' => $aproveStatus));
+        $data['status'] = 200;
+        $data['message'] = "Player has been approved successfully.";
         return response()->json($data);
     }
 }

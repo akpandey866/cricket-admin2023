@@ -62,7 +62,7 @@ class GradeController extends Controller
         $obj->club    =  $this->userDetail->id;
         $obj->mode    =  1;
         $obj->save();
-        Grade::where('id', '=', $obj->id)->update(array('sn' => 'G' . sprintf("%05d", ($obj->id))));
+        Grade::where('id', '=', $obj->id)->update(array('sn' => 'C' . sprintf("%05d", ($obj->id))));
         $data['success'] = true;
         $data['status'] = 200;
         $data['data'] = $obj;
@@ -106,7 +106,13 @@ class GradeController extends Controller
             $obj->sn         =  'G' . sprintf("%05d", ($request->gradeId));
         }
         $obj->save();
+        $result =     Grade::select('grades.*', 'users.game_mode as game_mode', 'users.game_name as game_name')
+            ->where('club', $this->userDetail->id)
+            ->leftJoin('users', 'grades.club', '=', 'users.id')
+            ->orderBy('grades.created_at', 'desc')
+            ->paginate(10);
         $data['status'] = 200;
+        $data['data'] = $result;
         $data['message'] = "Grade has been updated successfully.";
         return response()->json($data);
     }
