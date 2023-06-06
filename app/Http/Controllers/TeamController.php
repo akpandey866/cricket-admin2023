@@ -140,18 +140,25 @@ class TeamController extends Controller
             }
         }
         $obj->save();
-
+        $result =     Team::leftJoin('users', 'teams.club', '=', 'users.id')
+            ->leftJoin('dropdown_managers', 'teams.team_category', '=', 'dropdown_managers.id')
+            ->select('teams.*', 'teams.name as team_name', 'users.club_name', 'dropdown_managers.name')
+            ->where('teams.club', $this->userDetail->id)
+            ->orderBy("teams." . "created_at", "desc")
+            ->paginate(10);
         $data['status'] = 200;
-        $data['data'] = $obj;
+        $data['data'] = $result;
         $data['message'] = "Team has been updated successfully.";
         return response()->json($data);
     }
     public function getTeamListByGrade(Request $request)
     {
-
-        $teamLists = Team::where('grade_name', $request->grade_id)->select('name', 'id')->get();
+        $teamLists = Team::where('club', $this->userDetail->id)->select('name', 'id')->get();
+        $drop_down = new DropDown();
+        $matchTypeList = $drop_down->get_master_list("matchtype");
         $data['status'] = 200;
         $data['data'] = $teamLists;
+        $data['matchTypeList'] = $matchTypeList;
         return response()->json($data);
     }
     function getAddTeamData()

@@ -11,14 +11,19 @@ use App\Model\GamePower;
 use App\Model\GameUserControl;
 use App\Model\Team;
 use App\Model\Branding;
+use App\Model\GameExtraInfo;
 use App\Model\TeamOfTheWeek;
 use App\Model\TeamOfTheWeekPlayer;
 use App\Model\User;
 use App\Model\VerifyUser;
 use App\Model\UserTeams;
+use App\Model\MultiPlayer;
 use App\Model\MultiPlayerSalary;
+use App\Model\Fixture;
+use App\Model\DropDown;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 
 class CommonController extends Controller
@@ -174,6 +179,12 @@ class CommonController extends Controller
     {
         $result = GamePower::where('club', $this->userDetail->id)->first();
 
+        if (empty($result)) {
+            $obj = new GamePower();
+            $obj->trades = 20;
+            $obj->trades_status = 1;
+            $obj->save();
+        }
         $data['success'] = true;
         $data['status'] = 200;
         $data['data'] = $result;
@@ -209,6 +220,18 @@ class CommonController extends Controller
         $data['status'] = 200;
         $data['data'] = $result;
         $data['message'] = "Power Control updated sucessfully";
+        return response()->json($data);
+    }
+    function updateGamePrivacy(Request $request)
+    {
+        $privacyObj = GameExtraInfo::firstOrNew(['club_id' =>  $this->userDetail->id]);
+        $privacyObj->game_visibility = $request->privacy;
+        $privacyObj->game_accept_code = Str::random(8);;
+        $privacyObj->save();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $privacyObj;
+        $data['message'] = "Game Privacy updated sucessfully";
         return response()->json($data);
     }
 
@@ -503,12 +526,28 @@ class CommonController extends Controller
     {
         $msg = "";
         if ($request->type == 1) {
-            User::where('id', $this->userDetail->id)->update(['multi_players_id' => $request->structure]);
-            $newUser = MultiPlayerSalary::updateOrCreate([
-                'club_id'   => $this->userDetail->id,
-            ], [
-                'multi_player_id' => $request->structure,
-            ]);
+            $savedData = User::where('id', $this->userDetail->id)->update(['multi_players_id' => $request->structure]);
+
+            //MultiPlayer::where('club_id', $this->userDetail->id)->update(['parent_id' => $request->structure]);
+            $data = MultiPlayer::where('id', $request->structure)->first();
+
+
+            // prd($selectedStructureData->max_bats);
+            $objM = MultiPlayer::where('club_id', $this->userDetail->id)->first();
+            $objM->min_bats = $data->min_bats;
+            $objM->max_bats = $data->max_bats;
+            $objM->min_bowls = $data->min_bowls;
+            $objM->max_bowls = $data->max_bowls;
+            $objM->min_ar = $data->min_ar;
+            $objM->max_ar = $data->max_ar;
+            $objM->min_wks = $data->min_wks;
+            $objM->max_wks = $data->max_wks;
+            $objM->save();
+            // $newUser = MultiPlayerSalary::updateOrCreate([
+            //     'club_id'   => $this->userDetail->id,
+            // ], [
+            //     'multi_player_id' => $request->structure,
+            // ]);
             $msg = "Game Structure has been updated successfully.";
         }
         if ($request->type == 2) {
@@ -526,8 +565,10 @@ class CommonController extends Controller
 
             $msg = "Salary Cap has been updated successfully.";
         }
+        $multiPlayerData = MultiPlayer::where('club_id', $this->userDetail->id)->first();
         $data['success'] = true;
         $data['status'] = 200;
+        $data['multiplayer_data'] = $multiPlayerData;
         $data['message'] = $msg;
         return response()->json($data);
     }
@@ -535,10 +576,31 @@ class CommonController extends Controller
     {
         $getStucture = User::where('id', $this->userDetail->id)->value('multi_players_id');
         $gameSpot = GameUserControl::where('club', $this->userDetail->id)->first();
+        $multiPlayerData = MultiPlayer::where('club_id', $this->userDetail->id)->first();
+        $gamePrivacy = GameExtraInfo::where(['club_id' =>  $this->userDetail->id])->first();
+        if (empty($gamePrivacy)) {
+            $gamePrivacy = new GameExtraInfo;
+            $gamePrivacy->game_visibility = 1;
+            $gamePrivacy->club_id = $this->userDetail->id;
+            $gamePrivacy->save();
+        }
+
+
+        // Set Default $100 salary and 11 player structure here
+        $checkexists = MultiPlayerSalary::where('club_id', $this->userDetail->id)->exists();
+        if (!$checkexists) {
+            $multplayerSalObj = new MultiPlayerSalary;
+            $multplayerSalObj->multi_player_id = 1002;
+            $multplayerSalObj->salary = 100;
+            $multplayerSalObj->club_id = $this->userDetail->id;
+            $multplayerSalObj->save();
+        }
         $data['success'] = true;
         $data['status'] = 200;
         $data['game_spot'] = $gameSpot;
         $data['game_structure'] = $getStucture;
+        $data['multiplayer_data'] = $multiPlayerData;
+        $data['game_privacy'] = $gamePrivacy;
         return response()->json($data);
     }
     public function deleteVerifyUser(Request $request)
@@ -548,5 +610,231 @@ class CommonController extends Controller
         $data['status'] = 200;
         $data['message'] = "Verified Member deleted.";
         return response()->json($data);
+    }
+    function getGameActivateInfo()
+    {
+        $game_info = User::where('id', $this->userDetail->id)->first();  //Comes under game_name, club_name, timezone, country, state
+        $round_info = GameweekRound::where('club_id', $this->userDetail->id)->first();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['game_info'] = $game_info;
+        $data['round_info'] = $round_info;
+        return response()->json($data);
+    }
+    function activateGame(Request $request)
+    {
+        $obj = User::find($this->userDetail->id);
+        $obj->is_completed = $request->gameStatus;
+        $obj->save();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['message'] = "Game Status has been changed!";
+        return response()->json($data);
+    }
+
+    public function gameAccount(Request $request)
+    {
+
+        $type = "";
+        if ($request->running_game == "true") {
+            $type = 1;
+        }
+        if ($request->complete_game == "true") {
+            $type = 2;
+        }
+        if ($request->limit != "undefined") {
+            $DB  =     User::query();
+            if (!empty($request->full_name)) {
+                $DB->where("users.full_name", 'like', '%' . $request->full_name . '%');
+            }
+
+            if ($request->is_active == 0 || $request->is_active == 1) {
+                $DB->where("users.is_active", 'like', '%' . $request->is_active . '%');
+            }
+            $sortBy = "users.created_at";
+            $order = 'DESC';
+            if (!empty($request->sort)) {
+                $explodeOrderBy = explode("%", $request->sort);
+                $sortBy = current($explodeOrderBy);
+                $order = end($explodeOrderBy);
+            }
+            $pageLimit = 10;
+            if (!empty($request->limit)) {
+                $pageLimit = $request->limit;
+            }
+            if (!empty($type)) {
+                $result = $DB
+                    ->where('users.email', $this->userDetail->email)
+                    ->where('users.is_completed', $type)
+                    ->orderBy($sortBy, $order)
+                    ->paginate($pageLimit);
+            } else {
+                $result = $DB
+                    ->where('users.email', $this->userDetail->email)
+                    ->orderBy($sortBy, $order)
+                    ->paginate($pageLimit);
+            }
+        }
+
+        $allGames = User::where(['email' => $this->userDetail->email])->count();
+        $completeGames = User::where(['email' => $this->userDetail->email, 'is_completed' => 2])->count();
+        $getUserIds = User::where(['email' => $this->userDetail->email])->pluck('id', 'id')->all();
+        $allPlayers = Player::whereIn('club', $getUserIds)->count();
+        $allMembers = User::where(['senior_club_name' => $getUserIds])->count();
+
+        $newData = [];
+        $newData['all_games'] = $allGames;
+        $newData['complete_games'] = $completeGames;
+        $newData['all_players'] = $allPlayers;
+        $newData['all_members'] = $allMembers;
+
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $result;
+        $data['new_data'] = $newData;
+        return response()->json($data);
+    }
+
+    function dashboardData(Request $request)
+    {
+        $userList = UserTeams::where('club_id', $this->userDetail->id)->where('is_active', 1)->pluck('user_id')->all();
+        $totalUsers = User::where('is_deleted', 0)->whereIn('id', $userList)->count();
+
+        // Male female here
+        $maleUsers = User::where('gender', 'male')->where('is_deleted', 0)->whereIn('id', $userList)->count();
+        $femaleUsers = User::where('gender', 'female')->where('is_deleted', 0)->whereIn('id', $userList)->count();
+        $doNotWishToSpecifyUsers = User::where('gender', 'Do not wish to specify')->where('is_deleted', 0)->whereIn('id', $userList)->count();
+        $mPercentageUsers = $dnwtsPercentageUsers = $fPercentageUsers  = 0;
+        if (!empty($maleUsers) && !empty($totalUsers)) {
+            $mPercentageUsers = ($maleUsers / $totalUsers) * 100;
+        }
+        if (!empty($femaleUsers) && !empty($totalUsers)) {
+            $fPercentageUsers = ($femaleUsers / $totalUsers) * 100;
+        }
+        if (!empty($doNotWishToSpecifyUsers) && !empty($totalUsers)) {
+            $dnwtsPercentageUsers = ($doNotWishToSpecifyUsers / $totalUsers) * 100;
+        }
+
+        // Male female here
+        $googlePercentage = $fbPercentage = $twitterPercentage = $instPercentage = $womPercentage = $adPercentage = $refClubPercentage = $reFriendPercentage = 0;
+        $googDetails = User::where('about_us', 33)->whereIn('id', $userList)->count('id');
+        if (!empty($googDetails)) {
+            $googlePercentage = ($googDetails / $totalUsers) * 100;
+        }
+        $fbDetails = User::where('about_us', 34)->whereIn('id', $userList)->count('id');
+        if (!empty($fbDetails)) {
+            $fbPercentage = ($fbDetails / $totalUsers) * 100;
+        }
+        $twitDetails = User::where('about_us', 32)->whereIn('id', $userList)->count('id');
+        if (!empty($twitDetails)) {
+            $twitterPercentage = ($twitDetails / $totalUsers) * 100;
+        }
+        $instaDetails = User::where('about_us', 47)->whereIn('id', $userList)->count('id');
+        if (!empty($instaDetails)) {
+            $instPercentage = ($instaDetails / $totalUsers) * 100;
+        }
+        $womDetails = User::where('about_us', 48)->whereIn('id', $userList)->count('id');
+        if (!empty($womDetails)) {
+            $womPercentage = ($womDetails / $totalUsers) * 100;
+        }
+        $adDetails = User::where('about_us', 51)->whereIn('id', $userList)->count('id');
+        if (!empty($adDetails)) {
+            $adPercentage = ($adDetails / $totalUsers) * 100;
+        }
+        $refClubDetails = User::where('about_us', 50)->whereIn('id', $userList)->count('id');
+        if (!empty($refClubDetails)) {
+            $refClubPercentage = ($refClubDetails / $totalUsers) * 100;
+        }
+        $refFriendDetails = User::where('about_us', 49)->whereIn('id', $userList)->count('id');
+        if (!empty($refFriendDetails)) {
+            $reFriendPercentage = ($refFriendDetails / $totalUsers) * 100;
+        }
+
+
+        // fixtures data
+        $totalFixture = Fixture::where(['club' => $this->userDetail->id])->count('id');
+        $notStartedFixture = Fixture::where(['club' => $this->userDetail->id, 'status' => 0])->count('id');
+        $inProgressFixture = Fixture::where(['club' => $this->userDetail->id, 'status' => 2])->count('id');
+        $completedFixture = Fixture::where(['club' => $this->userDetail->id, 'status' => 3])->count('id');
+
+
+        $newPercentageData = [];
+        $newPercentageData['googlePercentage'] = $googlePercentage;
+        $newPercentageData['fbPercentage'] = $fbPercentage;
+        $newPercentageData['twitterPercentage'] = $twitterPercentage;
+        $newPercentageData['instPercentage'] = $instPercentage;
+        $newPercentageData['womPercentage'] = $womPercentage;
+        $newPercentageData['adPercentag'] = $adPercentage;
+        $newPercentageData['refClubPercentage'] = $refClubPercentage;
+        $newPercentageData['reFriendPercentage'] = $reFriendPercentage;
+
+        $newPercentageData['googDetails'] = $googDetails;
+        $newPercentageData['fbDetails'] = $fbDetails;
+        $newPercentageData['twitDetails'] = $twitDetails;
+        $newPercentageData['instaDetails'] = $instaDetails;
+        $newPercentageData['womDetails'] = $womDetails;
+        $newPercentageData['adDetails'] = $adDetails;
+        $newPercentageData['refClubDetails'] = $refClubDetails;
+        $newPercentageData['refFriendDetails'] = $refFriendDetails;
+
+
+        $newPercentageData['mPercentageUsers'] = number_format((float)$mPercentageUsers, 2, '.', '');
+        $newPercentageData['fPercentageUsers'] =  number_format((float)$fPercentageUsers, 2, '.', '');
+        $newPercentageData['dnwtsPercentageUsers'] =  number_format((float)$dnwtsPercentageUsers, 2, '.', '');
+
+        $newPercentageData['totalFixture'] = $totalFixture;
+        $newPercentageData['notStartedFixture'] =  $notStartedFixture;
+        $newPercentageData['inProgressFixture'] =  $inProgressFixture;
+        $newPercentageData['completedFixture'] =  $completedFixture;
+
+
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = $newPercentageData;
+        return response()->json($data);
+    }
+
+    public function dashboardUser(Request $request)
+    {
+
+        if ($request->limit != "undefined") {
+            $DB  =     User::query();
+            if (!empty($request->full_name)) {
+                $DB->where("users.full_name", 'like', '%' . $request->full_name . '%');
+            }
+
+            if ($request->is_active == 0 || $request->is_active == 1) {
+                $DB->where("users.is_active", 'like', '%' . $request->is_active . '%');
+            }
+            $sortBy = "users.created_at";
+            $order = 'DESC';
+            if (!empty($request->sort)) {
+                $explodeOrderBy = explode("%", $request->sort);
+                $sortBy = current($explodeOrderBy);
+                $order = end($explodeOrderBy);
+            }
+            $pageLimit = 10;
+            if (!empty($request->limit)) {
+                $pageLimit = $request->limit;
+            }
+
+            $userList = UserTeams::where('club_id', $this->userDetail->id)
+                ->where('user_teams.is_active', 1)
+                ->pluck('user_id')
+                ->all();
+
+            $result = $DB
+                ->with('get_paid_users')
+                ->whereIn('users.id', $userList)
+                ->orWhere('users.senior_club_name', $this->userDetail->id)
+                ->orderBy($sortBy, $order)
+                ->paginate($pageLimit);
+
+
+            $data['success'] = true;
+            $data['status'] = 200;
+            $data['data'] = $result;
+            return response()->json($data);
+        }
     }
 }

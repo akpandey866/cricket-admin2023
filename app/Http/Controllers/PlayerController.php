@@ -170,6 +170,11 @@ class PlayerController extends Controller
         $obj->bat_style = !empty($request->bat_style) ? $request->bat_style : 0;
         $obj->bowl_style = !empty($request->bowl_style) ? $request->bowl_style : 0;
 
+        $obj->sponsor_link = !empty($request->sponsor_link) ? $request->sponsor_link : 0;
+        $obj->external_profile_label = !empty($request->external_profile_label) ? $request->external_profile_label : "";
+        $obj->external_profile_link = !empty($request->external_profile_link) ? $request->external_profile_link : "";
+        $obj->description = !empty($request->description) ? $request->description : "";
+
         if (!empty($request->image) && $request->image != "undefined" && $request->image != "null") {
 
             $extension = $request->image->getClientOriginalExtension();
@@ -208,7 +213,14 @@ class PlayerController extends Controller
 
         $obj->save();
 
+        $sortBy = "players.created_at";
+        $order = 'DESC';
+        $result = Player::where('players.club', $this->userDetail->id)
+            ->orderBy($sortBy, $order)
+            ->paginate(10);
+
         $data['status'] = 200;
+        $data['data'] = $result;
         $data['message'] = "Player has been updated successfully.";
         return response()->json($data);
     }
@@ -221,7 +233,29 @@ class PlayerController extends Controller
         $position    =    DropDown::where('dropdown_type', 'position')->where('is_active', 1)->orderBy('name', 'ASC')->select('name', 'id')->get();
         $batStyle = $drop_down->get_master_list("bat-style");
         $bowlStyle = $drop_down->get_master_list("bowl-style");
+
         $svalue = PlayerPrice::where('club_id', $this->userDetail->id)->orderby('price', 'desc')->get();
+
+        $checkPlayerExists = Player::where('club', $this->userDetail->id)->exists();
+        $defaultValue = [
+            ['value' => '15.00', 'name' => '$15.00m'],
+            ['value' => '14.50', 'name' => '$14.50m'],
+            ['value' => '14.00', 'name' => '$14.00m'],
+            ['value' => '13.50', 'name' => '$13.50m'],
+            ['value' => '13.00', 'name' => '$13.00m'],
+            ['value' => '12.50', 'name' => '$12.50m'],
+            ['value' => '12.00', 'name' => '$12.00m'],
+            ['value' => '11.50', 'name' => '$11.50m'],
+            ['value' => '11.00', 'name' => '$11.00m'],
+            ['value' => '10.50', 'name' => '$10.50m'],
+            ['value' => '10.00', 'name' => '$10.00m'],
+            ['value' => '9.50', 'name' => '$9.50m'],
+            ['value' => '9.00', 'name' => '$9.00m'],
+            ['value' => '8.50', 'name' => '$8.50m'],
+            ['value' => '8.00', 'name' => '$8.00m'],
+            ['value' => '7.50', 'name' => '$7.50m'],
+            ['value' => '7.00', 'name' => '$7.00m'],
+        ];
 
         $data['status'] = 200;
         $data['teamList'] = $teamList;
@@ -229,14 +263,16 @@ class PlayerController extends Controller
         $data['batStyle'] = $batStyle;
         $data['bowlStyle'] = $bowlStyle;
         $data['value'] = $svalue;
+        $data['player_price_type'] = $this->userDetail->player_price_type;
+        $data['player_exists'] = $checkPlayerExists;
         return response()->json($data);
     }
     public function fantasyValue(Request $request)
     {
-        $customValue = PlayerPrice::where('club_id', $this->userDetail->id)->orderby('price', 'desc')->get();
+        $customValue = PlayerPrice::where('club_id', $this->userDetail->id)->orderby('sn', 'asc')->get();
         $defaultPlayerPrice = User::where('id', $this->userDetail->id)->value('player_price_type');
         if ($customValue->isEmpty()) {
-            for ($i = 1; $i <= 20; $i++) {
+            for ($i = 1; $i <= 16; $i++) {
                 $obj = new PlayerPrice;
                 if ($request->priceId) {
                     $obj = PlayerPrice::findOrFail($request->priceId);
@@ -244,6 +280,7 @@ class PlayerController extends Controller
                 $obj->club_id = $this->userDetail->id;
                 $obj->price = 0;
                 $obj->price_name = "";
+                $obj->sn = $i;
                 $obj->save();
             }
         }
@@ -265,13 +302,14 @@ class PlayerController extends Controller
             ['value' => '8.00', 'name' => '$8.00m'],
             ['value' => '7.50', 'name' => '$7.50m'],
             ['value' => '7.00', 'name' => '$7.00m'],
-            ['value' => '6.50', 'name' => '$6.50m'],
-            ['value' => '6.00', 'name' => '$6.00m'],
         ];
+
+        $playerpriceList = PlayerPrice::where('club_id', $this->userDetail->id)->orderby('sn', 'asc')->get();
         $data['status'] = 200;
         $data['custom_value'] = $customValue;
         $data['default_value'] = $defaultValue;
         $data['default_player_price'] = $defaultPlayerPrice;
+        $data['playerpriceList'] = $playerpriceList;
         return response()->json($data);
     }
     public function updateFantastValue(Request $request)
@@ -314,7 +352,7 @@ class PlayerController extends Controller
     function  savePlayerPrice(Request $request)
     {
         foreach ($request->data as $key => $value) {
-            $obj =     PlayerPrice::find($value['id']);
+            $obj = PlayerPrice::find($value['id']);
             $obj->price = $value['price'];
             $obj->price_name = "$" . round($value['price'], 2) . "m";
             $obj->save();
@@ -351,10 +389,11 @@ class PlayerController extends Controller
         $obj->max_ar = $request->max_ar;
         $obj->min_wks = $request->min_wk;
         $obj->max_wks = $request->max_wk;
+        $obj->player_allowed = $request->max_wk;
         $saved = $obj->save();
 
         if ($saved) {
-            User::where('id', $this->userDetail->id)->update(['multi_players_id' => $multiPlayerId]);
+            // User::where('id', $this->userDetail->id)->update(['multi_players_id' => $multiPlayerId]);
         }
         $data['success'] = true;
         $data['status'] = 200;
@@ -364,6 +403,23 @@ class PlayerController extends Controller
     function getPlayerStructureInfo(Request $request)
     {
         $details = MultiPlayer::where('club_id', $this->userDetail->id)->first();
+        if (empty($details)) {
+            $obj = new MultiPlayer;
+            $obj->club_id = $this->userDetail->id;
+            $obj->min_bats = 1;
+            $obj->max_bats = 5;
+            $obj->min_bowls = 1;
+            $obj->max_bowls = 5;
+            $obj->min_ar = 1;
+            $obj->max_ar = 5;
+            $obj->min_wks = 1;
+            $obj->max_wks = 5;
+            $obj->player_allowed = 11;
+            $obj->save();
+            User::where('id', $this->userDetail->id)->update(['multi_players_id' => 1002]);
+        }
+
+
         $data['success'] = true;
         $data['status'] = 200;
         $data['data'] = $details;

@@ -55,6 +55,9 @@ $router->group(
         $router->post('/update-basic-setting', 'ClubController@updateBasicSetting');
         $router->post('/update-fee-info', 'ClubController@updateFeeInfo');
         $router->get('/get-state-by-country-id/{countryId}', 'ClubController@getStateByCountryId');
+        $router->post('/updateGameStatus', 'ClubController@updateGameStatus');
+        $router->post('/transferAdminRight', 'ClubController@transferAdminRight');
+        $router->post('/createNewClub', 'ClubController@createNewClub');
 
         // Grade Routing
         $router->get('/grades/listing', 'GradeController@index');
@@ -102,6 +105,14 @@ $router->group(
 
         // Bonus Point
         $router->get('/common/c-vcaptain', 'CommonController@CVCaptain');
+
+        // Dashboard Data
+        $router->get('/common/dashboardData', 'CommonController@dashboardData');
+        $router->get('/common/dashboardUser', 'CommonController@dashboardUser');
+
+        // Game Login
+        $router->post('gameLogin',  ['uses' => 'AdminLoginController@gameLogin']);
+
         // Player Routing
         $router->get('/players/listing', 'PlayerController@index');
         $router->get('/players/player-details/{id}', 'PlayerController@playerDetail');
@@ -126,6 +137,7 @@ $router->group(
         $router->get('/player-availabilities/availability-details/{id}', 'PlayerAvailabilityController@availabilityDetail');
         $router->post('/player-availabilities/save-availability', 'PlayerAvailabilityController@saveAvailability');
         $router->post('/player-availabilities/edit-availability', 'PlayerAvailabilityController@editAvailability');
+        $router->get('/player-availabilities/update-status/{id}/{status}', 'PlayerAvailabilityController@updateStatus');
 
         // Team routing start here
         $router->get('/teams/listing', 'TeamController@index');
@@ -134,7 +146,7 @@ $router->group(
         $router->post('/teams/edit-team', 'TeamController@editTeam');
         $router->post('/teams/delete-team', 'TeamController@deleteTeam');
         $router->get('/teams/get-add-team-data', 'TeamController@getAddTeamData');
-        $router->get('/teams/team-list-by-grade/{grade_id}', 'TeamController@getTeamListByGrade');
+        $router->get('/teams/team-list-by-grade', 'TeamController@getTeamListByGrade');
 
         // Fixture Routing
         $router->get('/fixtures/listing', 'FixtureController@index');
@@ -154,10 +166,11 @@ $router->group(
         // Team Player Routing is here
         Route::get('/team-player/{fixture_id}', array('as' => 'TeamPlayer.index', 'uses' => 'TeamPlayerController@index'));
         Route::get('/getPickedPlayer/{player_id}/{fixture_id}', array('as' => 'TeamPlayer.index', 'uses' => 'TeamPlayerController@index'));
-        Route::get('/team-player-listing', array('as' => 'TeamPlayer.listing', 'uses' => 'TeamPlayerController@teamPlayerListing'));
+        Route::get('/team-player-listing/{fixture_id}', array('as' => 'TeamPlayer.listing', 'uses' => 'TeamPlayerController@teamPlayerListing'));
         Route::get('/delete-team-player/{playerId}/{fixtureId}', array('as' => 'TeamPlayer.deleteTeamPlayer', 'uses' => 'TeamPlayerController@deleteTeamPlayer'));
         Route::get('/add-team-player-direct/{playerId}/{fixtureId}', array('as' => 'TeamPlayer.saveTeamPlayerDirect', 'uses' => 'TeamPlayerController@saveTeamPlayerDirect'));
         Route::post('/save-multi-team-player', 'TeamPlayerController@saveMultiTeamPlayer');
+        Route::get('/delete-squad/{fixtureId}', 'TeamPlayerController@deleteSquad');
 
         // Scorecard Routing
         Route::get('/scorecard/{fixtureId}', 'ScoreCardController@scorecardDetail');
@@ -173,6 +186,15 @@ $router->group(
         Route::post('/common/edit-power-control', 'CommonController@editPowerControl');
         Route::post('/common/change-power-control-status', 'CommonController@changePowerControlStatus');
 
+        // Game Privacy routing
+        Route::post('/common/update-game-privacy', 'CommonController@updateGamePrivacy');
+
+        // Activate Game
+        Route::post('/common/activateGame', 'CommonController@activateGame');
+
+        // Game-Account
+        Route::get('/common/gameAccount', 'CommonController@gameAccount');
+
         // Verify User
         Route::get('/common/verify-users', 'CommonController@verifyUsers');
         Route::post('/common/save-verify-user', 'CommonController@saveVerifyUser');
@@ -182,6 +204,9 @@ $router->group(
         Route::post('/common/edit-game-structure', 'CommonController@editGameStructure');
         Route::get('/common/get-game-structure-info', 'CommonController@getGameStrucureInfo');
 
+        // Game Activation info
+        Route::get('/common/getGameActivateInfo', 'CommonController@getGameActivateInfo');
+
         // Article Routing
         $router->get('/articles/listing', 'ArticleController@index');
         $router->post('/articles/save-article', 'ArticleController@saveArticle');
@@ -189,6 +214,7 @@ $router->group(
         $router->post('/articles/edit-article', 'ArticleController@editArticle');
         Route::get('/articles/article-details/{id}', 'ArticleController@articleDetail');
         $router->get('/articles/article-data', 'ArticleController@articleData');
+        $router->get('/articles/update-status/{id}/{status}', 'ArticleController@updateStatus');
 
         // Rounds Routing
         $router->get('/rounds/listing', 'RoundController@index');
@@ -225,6 +251,7 @@ $router->group(
         // Sponsors Routing
         $router->get('/feedback-fantasy/category-listing', 'FeedbackFantasyController@cateogryIndex');
         $router->post('/feedback-fantasy/save-category', 'FeedbackFantasyController@saveCategory');
+        $router->post('/feedback-fantasy/edit-category', 'FeedbackFantasyController@editCategory');
         $router->post('/feedback-fantasy/delete-category', 'FeedbackFantasyController@deleteCategory');
         $router->get('/feedback-fantasy/category-details/{id}', 'FeedbackFantasyController@categoryDetail');
         $router->get('/feedback-fantasy/managers-listing', 'FeedbackFantasyController@coachListing');

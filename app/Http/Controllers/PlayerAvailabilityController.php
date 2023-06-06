@@ -78,16 +78,12 @@ class PlayerAvailabilityController extends Controller
     public function editAvailability(Request $request)
     {
 
-        $playerList = $request->player;
-        foreach ($playerList as $key => $value) {
-            $objId = Availability::where(['club_id' => $this->userDetail->id, 'player' => $value])->value('id');
-            $obj =  Availability::find($objId);
-            $obj->player = $value;
-            $obj->date_from = $request->date_from;
-            $obj->date_till = $request->date_till;
-            $obj->reason = $request->reason;
-            $obj->save();
-        }
+        $id = $request->avId;
+        $obj =  Availability::find($id);
+        $obj->date_from = $request->date_from;
+        $obj->date_till = $request->date_till;
+        $obj->reason = $request->reason;
+        $obj->save();
 
         $result = Availability::leftJoin('players', 'players.id', '=', 'availabilities.player')
             ->orderBy("availabilities.id", "desc")
@@ -152,6 +148,19 @@ class PlayerAvailabilityController extends Controller
         $data['status'] = 200;
         $data['data'] = $map;
         $data['message'] = "Data fetched sucessfully.";
+        return response()->json($data);
+    }
+    function updateStatus($id = 0, $status = 0)
+    {
+        Availability::where('id', '=', $id)->update(array('is_active' => $status));
+        $msg = "";
+        if ($status  == 1) {
+            $msg = "Availability has been activated.";
+        } else {
+            $msg = "Availability has been deactivated.";
+        }
+        $data['status'] = 200;
+        $data['message'] = $msg;
         return response()->json($data);
     }
 }

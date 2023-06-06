@@ -43,4 +43,9 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         $clubList        =    User::where('is_active', 1)->where('user_role_id', 3)->where('is_deleted', 0)->pluck('club_name', 'id')->all();
         return $clubList;
     }
+
+    public function get_paid_users()
+    {
+        return $this->belongsTo('App\Model\PaidUser', 'id', 'user_id');
+    }
 }

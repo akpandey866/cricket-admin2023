@@ -85,9 +85,9 @@ class UserController extends Controller
         $obj->user_role_id = 2;
         $obj->is_verified = 1;
         $obj->is_active = 1;
+        $obj->phone = !empty($request->phone) ? $request->phone : '';
         $obj->referral_code = substr(base_convert(sha1(uniqid(mt_rand())), 16, 36), 0, 8);
         // $obj->address = !empty(Input::get('address')) ? Input::get('address') : '';
-        // $obj->phone = !empty(Input::get('phone')) ? Input::get('phone') : '';
         // $obj->country = !empty(Input::get('country')) ? Input::get('country') : 0;
         // $obj->state = !empty(Input::get('state')) ? Input::get('state') : 0;
         // $obj->city = !empty(Input::get('city')) ? Input::get('city') : 0;

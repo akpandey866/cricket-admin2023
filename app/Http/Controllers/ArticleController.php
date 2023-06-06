@@ -166,9 +166,14 @@ class ArticleController extends Controller
                 $obj->thumb_image        =    $image;
             }
         }
-
         $obj->save();
+        $sortBy = "articles.created_at";
+        $order = 'DESC';
+        $result =     Article::where('club_id', $this->userDetail->id)
+            ->orderBy($sortBy, $order)
+            ->paginate(10);
         $data['status'] = 200;
+        $data['data'] = $result;
         $data['message'] = "Article has been updated successfully.";
         return response()->json($data);
     }
@@ -180,6 +185,19 @@ class ArticleController extends Controller
         $data['status'] = 200;
         //$data['data'] = $gradeName;
         $data['matchTypeList'] = $matchTypeList;
+        return response()->json($data);
+    }
+    function updateStatus($id = 0, $status = 0)
+    {
+        Article::where('id', '=', $id)->update(array('is_active' => $status));
+        $msg = "";
+        if ($status  == 1) {
+            $msg = "Article has been activated.";
+        } else {
+            $msg = "Article has been deactivated.";
+        }
+        $data['status'] = 200;
+        $data['message'] = $msg;
         return response()->json($data);
     }
 }

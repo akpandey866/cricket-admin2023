@@ -91,16 +91,19 @@ class TeamPlayerController extends Controller
 
     public function teamPlayerListing(Request $request)
     {
-        $playerlist    =    Player::where('players.club', $this->userDetail->id)
+        $fixtureId = $request->fixture_id;
+        $selectedPlayerList = TeamPlayer::where('fixture_id', $fixtureId)->pluck('player_id', 'player_id')->all();
+        $playerlist = Player::where('players.club', $this->userDetail->id)
+            ->whereNotIn('players.id', $selectedPlayerList)
             ->leftJoin('teams', 'players.team_id', '=', 'teams.id')
             // ->select('players.*', 'teams.name  as team_name')
             ->select('players.full_name', 'players.id')
             ->where('players.is_active', 1)
             ->orderBy('players.full_name', 'ASC')
             ->get();
+
         $data = [];
         $map = $playerlist->map(function ($item) {
-
             $data['value'] = $item->id;
             $data['text'] = $item->full_name;
             return $data;
@@ -120,9 +123,24 @@ class TeamPlayerController extends Controller
             $obj->fixture_id =  $request->fixtureId;
             $obj->save();
         }
-
+        $fixtureId = $request->fixtureId;
+        $selectedPlayerList = TeamPlayer::where('fixture_id', $fixtureId)->pluck('player_id', 'player_id')->all();
+        $playerlist = Player::where('players.club', $this->userDetail->id)
+            ->whereNotIn('players.id', $selectedPlayerList)
+            ->leftJoin('teams', 'players.team_id', '=', 'teams.id')
+            ->select('players.full_name', 'players.id')
+            ->where('players.is_active', 1)
+            ->orderBy('players.full_name', 'ASC')
+            ->get();
+        $data = [];
+        $map = $playerlist->map(function ($item) {
+            $data['value'] = $item->id;
+            $data['text'] = $item->full_name;
+            return $data;
+        });
         $data['success'] = true;
         $data['status'] = 200;
+        $data['data'] = $map;
         $data['message'] = "Player have been saved successfully.";
         return response()->json($data);
     } //end saveForum
@@ -175,8 +193,25 @@ class TeamPlayerController extends Controller
             ->where('players.is_active', 1)
             ->orderBy("orderno", 'asc')
             ->get();
+
+        $selectedPlayerList = TeamPlayer::where('fixture_id', $fixtureId)->pluck('player_id', 'player_id')->all();
+        $playerlist = Player::where('players.club', $this->userDetail->id)
+            ->whereNotIn('players.id', $selectedPlayerList)
+            ->leftJoin('teams', 'players.team_id', '=', 'teams.id')
+            ->select('players.full_name', 'players.id')
+            ->where('players.is_active', 1)
+            ->orderBy('players.full_name', 'ASC')
+            ->get();
+        $data = [];
+        $map = $playerlist->map(function ($item) {
+            $data['value'] = $item->id;
+            $data['text'] = $item->full_name;
+            return $data;
+        });
+
         $data['success'] = true;
         $data['status'] = 200;
+        $data['data'] = $map;
         $data['picked_player'] = $result;
         $data['message'] = "Players added successfully.";
         return response()->json($data);
@@ -238,6 +273,18 @@ class TeamPlayerController extends Controller
         $data['status'] = 200;
         $data['picked_player'] = $result;
         $data['message'] = "Player have been added successfully.";
+        return response()->json($data);
+    }
+
+    function deleteSquad(Request $request)
+    {
+        $fixtureId = $request->fixtureId;
+        TeamPlayer::where('fixture_id', $fixtureId)->delete();
+        FixtureScorcard::where('fixture_id', $fixtureId)->delete();
+        $data['success'] = true;
+        $data['status'] = 200;
+        $data['data'] = [];
+        $data['message'] = "Players have been deleted successfully.";
         return response()->json($data);
     }
 }// end ClubController class

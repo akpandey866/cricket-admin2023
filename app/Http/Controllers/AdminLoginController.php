@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Input;
 use Config, Cache, Cookie, DB, File, Hash, Mail, mongoDate, Redirect, Response, Session, URL, View, Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
  * AdminLogin Controller
@@ -49,19 +50,24 @@ class AdminLoginController extends Controller
             'token' => $token
         ]);
     } // end index()
-    /**
-     * Function for logout admin users
-     *
-     * @param null
-     *
-     * @return rerirect page.
-     */
-    public function logout()
+
+
+    public function gameLogin(Request $request)
     {
-        Auth::guard('admin')->logout();
-        Session::flash('flash_notice', 'You are now logged out!');
-        return Redirect::to('/admin')->with('message', 'You are now logged out!');
-    } //endLogout()
+
+        // Auth::guard('api')->loginUsingId($request->userId, true);
+
+        Auth::onceUsingId($request->userId);
+        $user = User::find($request->userId);
+        $token = auth('api')->login($user);
+        return response()->json([
+            'user' => auth('api')->user(),
+            'status' => 200,
+            'token' => $token
+        ]);
+    } // end index()
+
+
     /**
      * Function is used to display forget password page
      *
