@@ -171,4 +171,22 @@ class SponsorController extends Controller
         $data['message'] = $msg;
         return response()->json($data);
     }
+    function imageUpload(Request $request)
+    {
+        if (!empty($request->image)) {
+            $extension             =    $request->image->getClientOriginalExtension();
+            $newFolder             =     strtoupper(date('M') . date('Y')) . '/';
+            $folderPath            =     base_path() . "/public/uploads/quill-fileuploader/" . $newFolder;
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, $mode = 0777, true);
+            }
+            $userImageName = time() . '-quill-image.' . $extension;
+            $image = $newFolder . $userImageName;
+            $request->image->move($folderPath, $userImageName);
+        }
+        $data['status'] = 200;
+        $data['message'] = "success";
+        $data['url'] = env('APP_URL') . "/admin-cricket/public/uploads/quill-fileuploader/" . $image;
+        return response()->json($data);
+    }
 }

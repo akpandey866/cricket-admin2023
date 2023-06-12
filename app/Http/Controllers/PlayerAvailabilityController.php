@@ -55,17 +55,16 @@ class PlayerAvailabilityController extends Controller
     }
     public function deleteAvailability(Request $request)
     {
-        try {
-            Player::where('id', $request->id)->delete();
-            $data['status'] = 200;
-            // $data['data'] = $result;
-            $data['message'] = "Player has been deleted successfully.";
-            return response()->json($data);
-        } catch (\Exception $e) {
-            $data['success'] = false;
-            $data['status'] = 501;
-            $data['message'] = $e->getMessage();
-        }
+        $result = Availability::leftJoin('players', 'players.id', '=', 'availabilities.player')
+            ->orderBy("availabilities." . "created_at", "desc")
+            ->where('availabilities.club', $this->userDetail->id)
+            ->select('availabilities.*', 'players.full_name as player_name')
+            ->paginate(10);
+        Availability::where('id', $request->id)->delete();
+        $data['status'] = 200;
+        $data['data'] = $result;
+        $data['message'] = "Player Availability has been deleted successfully.";
+        return response()->json($data);
     }
 
     public function availabilityDetail(Request $request)

@@ -20,7 +20,8 @@ use App\Model\UserTeams;
 use App\Model\MultiPlayer;
 use App\Model\MultiPlayerSalary;
 use App\Model\Fixture;
-use App\Model\DropDown;
+use App\Model\TeamPlayer;
+use App\Model\UserTeamPlayers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -552,7 +553,10 @@ class CommonController extends Controller
         }
         if ($request->type == 2) {
             $multiPlayerId = User::where('id', $this->userDetail->id)->value('multi_players_id');
-            $id = MultiPlayerSalary::where(['club_id' => $this->userDetail->id, 'multi_player_id' => $multiPlayerId])->value('id');
+
+            MultiPlayer::where('club_id', $this->userDetail->id)->update(['salary' => $request->salary]);
+
+            $id = MultiPlayerSalary::where(['club_id' => $this->userDetail->id])->value('id');
             $obj  = new MultiPlayerSalary;
             if (!empty($id)) {
                 $obj  = MultiPlayerSalary::find($id);
@@ -836,5 +840,66 @@ class CommonController extends Controller
             $data['data'] = $result;
             return response()->json($data);
         }
+    }
+
+    function checkItemExists(Request $request)
+    {
+        $itemType = $request->type;
+        $id = $request->id;
+        $isExists = 0;
+        $messageString = "";
+        if ($itemType == 'grade') {
+            $status = [2, 3];
+            $checkFixtureExists = Fixture::where(['grade' => $id])->whereNotIn('status', $status)->exists();
+            $checkTeamExists = Team::where(['grade_name' => $id])->exists();
+            if ($checkFixtureExists) {
+                $isExists = 1;
+                $messageString = "You can not delete this comp. Fixture is in progress/completed.";
+            }
+            if ($checkTeamExists) {
+                $isExists = 1;
+                $messageString .= "Team already exists in this comp.";
+            }
+        }
+        if ($itemType == 'team') {
+            $status = [2, 3];
+            $checkFixtureExists = Fixture::where(['team' => $id])->whereNotIn('status', $status)->exists();
+            if ($checkFixtureExists) {
+                $isExists = 1;
+                $messageString = "You can not delete this grade. Fixture is in progress/completed.";
+            }
+        }
+        if ($itemType == 'round') {
+            $status = [2, 3];
+            $checkFixtureExists = Fixture::where(['team' => $id])->whereNotIn('status', $status)->exists();
+            if ($checkFixtureExists) {
+                $isExists = 1;
+                $messageString = "You can not delete this grade. Fixture is in progress/completed.";
+            }
+        }
+        if ($itemType == 'fixture') {
+            $checkSquad = TeamPlayer::where(['fixture_id' => $id])->exists();
+            if ($checkSquad) {
+                $isExists = 1;
+                $messageString = "You can not delete this fixture. Squad created in this fixture.";
+            }
+        }
+        if ($itemType == 'player') {
+            $checkSquadExists = TeamPlayer::where(['player_id' => $id])->exists();
+            $checkTeamExists = UserTeamPlayers::where(['player_id' => $id])->exists();
+            if ($checkSquadExists) {
+                $isExists = 1;
+                $messageString = "You can not delete this player.This is exists in fixtures.";
+            }
+            if ($checkTeamExists) {
+                $isExists = 1;
+                $messageString .= "This is already picked in team.";
+            }
+        }
+        $data['success'] = true;
+        $data['message'] = $messageString;
+        $data['status'] = 200;
+        $data['data'] = $isExists;
+        return response()->json($data);
     }
 }

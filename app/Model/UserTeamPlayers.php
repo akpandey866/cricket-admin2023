@@ -1,24 +1,23 @@
 <?php
-namespace App\Model; 
 
-use Eloquent,Session,App,DB;
+namespace App\Model;
 
-class UserTeamPlayers extends Eloquent 
-    
+use Illuminate\Database\Eloquent\Model;
+
+class UserTeamPlayers extends Model
+
 {
-	public $timestamps = true;
-	protected $table = 'user_team_players';
+    public $timestamps = true;
+    protected $table = 'user_team_players';
     protected $fillable = ['team_id', 'player_id'];
 
 
-   public function players()
+    public function players()
     {
         return $this->belongsTo('App\Model\Player', 'player_id');
     }
-   public function teams()
+    public function teams()
     {
         return $this->belongsTo('App\Model\UserTeams', 'team_id');
     }
-
-
 }

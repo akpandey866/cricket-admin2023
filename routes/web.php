@@ -123,6 +123,8 @@ $router->group(
         $router->get('players/get-player-structure-info', 'PlayerController@getPlayerStructureInfo');
         $router->get('players/player-profile-claim-listing', 'PlayerController@playerProfileClaimListing');
         $router->post('players/verify-player-request', 'PlayerController@verifyPlayerRequest');
+        $router->post('/players/delete-player', 'PlayerController@deletePlayer');
+        $router->get('/players/update-status/{id}/{status}', 'PlayerController@updateStatus');
 
         // Fantasy Values(Player Price) Spot Routing
         $router->get('/players/fantasy-values', 'PlayerController@fantasyValue');
@@ -138,6 +140,7 @@ $router->group(
         $router->post('/player-availabilities/save-availability', 'PlayerAvailabilityController@saveAvailability');
         $router->post('/player-availabilities/edit-availability', 'PlayerAvailabilityController@editAvailability');
         $router->get('/player-availabilities/update-status/{id}/{status}', 'PlayerAvailabilityController@updateStatus');
+        $router->post('/player-availabilities/delete-availability', 'PlayerAvailabilityController@deleteAvailability');
 
         // Team routing start here
         $router->get('/teams/listing', 'TeamController@index');
@@ -207,12 +210,18 @@ $router->group(
         // Game Activation info
         Route::get('/common/getGameActivateInfo', 'CommonController@getGameActivateInfo');
 
+
+        Route::post('/common/checkItemExists', 'CommonController@checkItemExists');
+
+
+
         // Article Routing
         $router->get('/articles/listing', 'ArticleController@index');
         $router->post('/articles/save-article', 'ArticleController@saveArticle');
         $router->post('/articles/delete-article', 'ArticleController@deleteArticle');
         $router->post('/articles/edit-article', 'ArticleController@editArticle');
-        Route::get('/articles/article-details/{id}', 'ArticleController@articleDetail');
+        Route::get('/articles/article-details/{id}', 'ArticleController@
+        ');
         $router->get('/articles/article-data', 'ArticleController@articleData');
         $router->get('/articles/update-status/{id}/{status}', 'ArticleController@updateStatus');
 
@@ -231,6 +240,7 @@ $router->group(
         $router->get('/sponsors/sponsor-details/{id}', 'SponsorController@sponsorDetail');
         $router->get('/sponsor/update-featured/{id}/{status}', 'SponsorController@updateFeatured');
         $router->get('/sponsor/update-status/{id}/{status}', 'SponsorController@updateStatus');
+        $router->post('/sponsors/imageUpload', 'SponsorController@imageUpload');
 
         // User Routing
         $router->get('/users/listing', 'UserController@index');

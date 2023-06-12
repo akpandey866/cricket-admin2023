@@ -178,8 +178,24 @@ class FixtureController extends Controller
         $obj->club    =  $this->userDetail->id;
         $obj->save();
 
+        $fixtureDetail = Fixture::leftJoin('users', 'fixtures.opposition_club', '=', 'users.id')
+            ->leftJoin('user_teams as user_teams', 'fixtures.team', '=', 'user_teams.id')
+            ->leftJoin('users as clubs', 'fixtures.club', '=', 'clubs.id')
+            ->leftJoin('grades as grades', 'fixtures.grade', '=', 'grades.id')
+            ->leftJoin('dropdown_managers', 'fixtures.team_category', '=', 'dropdown_managers.id')
+            ->leftJoin('dropdown_managers as dropdown_managers1', 'fixtures.team_type', '=', 'dropdown_managers1.id')
+            ->leftJoin('dropdown_managers as dropdown_managers2', 'fixtures.match_type', '=', 'dropdown_managers2.id')
+            ->leftJoin('dropdown_managers as dropdown_managers3', 'fixtures.grade', '=', 'dropdown_managers3.id')
+            ->leftJoin('teams', 'fixtures.team', '=', 'teams.id')
+            ->where('fixtures.id', $obj->id)
+            ->where('fixtures.status', '!=', 3)
+            ->select('fixtures.*', 'clubs.club_name', 'dropdown_managers.name  as team_category', 'dropdown_managers1.name  as team_type', 'dropdown_managers2.name  as match_type', 'dropdown_managers1.name  as grade_name', 'teams.name  as team_name', 'grades.grade', 'user_teams.my_team_name', 'fixtures.match_type as match_code')
+            ->where('fixtures.id', $request->id)
+            ->first();
+
         $data['success'] = true;
         $data['status'] = 200;
+        $data['data'] = $fixtureDetail;
         $data['message'] = "Fixture has been added successfully.";
         return response()->json($data);
     }
@@ -230,7 +246,7 @@ class FixtureController extends Controller
             ->leftJoin('teams', 'fixtures.team', '=', 'teams.id')
             ->where('fixtures.club', $this->userDetail->id)
             ->where('fixtures.status', '!=', 3)
-            ->select('fixtures.*', 'clubs.club_name', 'dropdown_managers.name  as team_category', 'dropdown_managers1.name  as team_type', 'dropdown_managers2.name  as match_type', 'dropdown_managers1.name  as grade_name', 'teams.name  as team_name', 'grades.grade', 'user_teams.my_team_name')
+            ->select('fixtures.*', 'clubs.club_name', 'dropdown_managers.name  as team_category', 'dropdown_managers1.name  as team_type', 'dropdown_managers2.name  as match_type', 'dropdown_managers1.name  as grade_name', 'teams.name  as team_name', 'grades.grade', 'user_teams.my_team_name', 'fixtures.match_type as match_code')
             ->where('fixtures.id', $request->id)
             ->first();
         $data['status'] = 200;

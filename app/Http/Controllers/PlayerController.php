@@ -124,17 +124,10 @@ class PlayerController extends Controller
     }
     public function deletePlayer(Request $request)
     {
-        try {
-            Player::where('id', $request->id)->delete();
-            $data['status'] = 200;
-            // $data['data'] = $result;
-            $data['message'] = "Player has been deleted successfully.";
-            return response()->json($data);
-        } catch (\Exception $e) {
-            $data['success'] = false;
-            $data['status'] = 501;
-            $data['message'] = $e->getMessage();
-        }
+        Player::where('id', $request->id)->delete();
+        $data['status'] = 200;
+        $data['message'] = "Player has been deleted successfully.";
+        return response()->json($data);
     }
 
     public function playerDetail(Request $request)
@@ -278,7 +271,7 @@ class PlayerController extends Controller
                     $obj = PlayerPrice::findOrFail($request->priceId);
                 }
                 $obj->club_id = $this->userDetail->id;
-                $obj->price = 0;
+                $obj->price = "";
                 $obj->price_name = "";
                 $obj->sn = $i;
                 $obj->save();
@@ -304,9 +297,9 @@ class PlayerController extends Controller
             ['value' => '7.00', 'name' => '$7.00m'],
         ];
 
-        $playerpriceList = PlayerPrice::where('club_id', $this->userDetail->id)->orderby('sn', 'asc')->get();
+        $playerpriceList = PlayerPrice::where('club_id', $this->userDetail->id)->select('price')->orderby('sn', 'asc')->get();
         $data['status'] = 200;
-        $data['custom_value'] = $customValue;
+        $data['custom_value'] = $playerpriceList;
         $data['default_value'] = $defaultValue;
         $data['default_player_price'] = $defaultPlayerPrice;
         $data['playerpriceList'] = $playerpriceList;
@@ -443,6 +436,23 @@ class PlayerController extends Controller
         VerifyUser::where('id', '=', $id)->update(array('is_approved' => $aproveStatus));
         $data['status'] = 200;
         $data['message'] = "Player has been approved successfully.";
+        return response()->json($data);
+    }
+
+    function updateStatus($id = 0, $status = 0)
+    {
+        Player::where('id', '=', $id)->update(array('is_active' => $status));
+
+        $msg = "";
+        if ($status  == 1) {
+            $msg = "Player has been activated.";
+        } else {
+            $msg = "Player has been deactivated.";
+        }
+        $getData =  Player::findOrFail($id);
+        $data['status'] = 200;
+        $data['message'] = $msg;
+        $data['data'] = $getData;
         return response()->json($data);
     }
 }
